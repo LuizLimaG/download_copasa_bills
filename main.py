@@ -1,6 +1,8 @@
 import time
+
+start_time = time.time()
+
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -46,14 +48,11 @@ wait = WebDriverWait(driver, 20)
 driver.maximize_window()
 
 login_copasa(driver=driver, wait=wait)
-
-time.sleep(1)
-listServices = driver.find_elements(By.CLASS_NAME, "centerElem")
-
-for service in listServices:
-    if "Segunda via de contas" in service.text:
-        service.click()
-        break
-
 select_all_option(driver=driver)
 download_all_bills(driver=driver, wait=wait, download_folder=r"C:\Users\luizz\PROJETOS\antisuicidio\contas")
+
+end_time = time.time()
+total_seconds = end_time - start_time
+minutes = int(total_seconds // 60)
+seconds = int(total_seconds % 60)
+print(f"Tempo total de execução: {minutes}min {seconds}s")
