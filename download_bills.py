@@ -1,6 +1,7 @@
 import os
 import time
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from back_to_list import back_to_list
@@ -26,7 +27,8 @@ def wait_for_download(download_folder, timeout=30):
         time.sleep(0.5)
     return False
 
-def download_all_bills(driver, wait, download_folder):
+def download_all_bills(driver, download_folder, timeout=20):
+    wait = WebDriverWait(driver, timeout=timeout)
     selector = "#tbIdentificador tbody tr"
     i = 0
 
@@ -43,7 +45,7 @@ def download_all_bills(driver, wait, download_folder):
             print("⏳ Tempo limite atingido. Reautenticando...")
             logoff(driver, wait)
             login_copasa(driver, wait)
-            select_all_option(driver, wait)
+            select_all_option(driver)
             start_time = time.time()
             rows = driver.find_elements(By.CSS_SELECTOR, selector)
             continue
@@ -71,7 +73,7 @@ def download_all_bills(driver, wait, download_folder):
         try:
             back_to_list(driver=driver, wait=wait)
         except Exception as e:
-            print(f"⚠️ Falha ao voltar para lista (fatura {i}): {e}")
+            print(f"⚠️ Falha ao voltar para lista (fatura {i + 1}): {e}")
 
         i += 1
 

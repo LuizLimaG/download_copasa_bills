@@ -10,10 +10,6 @@ def modal_detector(driver, wait):
         modal_close = modal_footer.find_element(By.TAG_NAME, 'button')
         
         for text in modal_paragraph:
-            if 'Favor realizar novo logon' in text.text:
-                print("Fechando modal de logon.")
-                modal_close.click()
-            
             if 'ERRO COPASA: Houve um erro inesperado' in text.text:
                 print(f"Algum erro inesperado em {driver.current_url()}")
                 modal_close.click()
@@ -22,4 +18,3 @@ def modal_detector(driver, wait):
     except:
         print('Nenhum modal encontrado?')
         pass
-    
