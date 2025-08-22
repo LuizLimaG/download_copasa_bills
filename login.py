@@ -1,11 +1,11 @@
+import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-
 from webmail import webmail_access
 from select_agency import select_agency
 from modal_detector import modal_detector
 
-def login_copasa(driver, wait):
+def login_copasa(driver, wait, cpf, password, webmail_user, webmail_password, webmail_host):
     print("=== INICIANDO LOGIN COPASA ===")
     
     print("Acessando página de login...")
@@ -15,13 +15,13 @@ def login_copasa(driver, wait):
     userInput = wait.until(
         EC.element_to_be_clickable((By.ID, "cpfInput"))
     )
-    userInput.send_keys("90268660620")
+    userInput.send_keys(cpf)
 
     print("Preenchendo senha...")
     passwordInput = wait.until(
         EC.element_to_be_clickable((By.ID, "passwordInput"))
     )
-    passwordInput.send_keys("@#Rintec2025")
+    passwordInput.send_keys(password)
 
     print("Clicando em login...")
     validateLogin = wait.until(
@@ -33,7 +33,7 @@ def login_copasa(driver, wait):
     modal_detector(driver=driver, wait=wait)
     
     print("Acessando webmail para buscar token...")
-    token = webmail_access(driver, "https://rintec.com.br:2096/", "contato@rintec.com.br", "@#Rintec161212")
+    token = webmail_access(driver, webmail_host, webmail_user, webmail_password)
     print(f"Token obtido: {token}")
 
     print("Acessando página de token...")
@@ -58,7 +58,7 @@ def login_copasa(driver, wait):
     select_agency(driver=driver, wait=wait)
     
     print("=== LOGIN COPASA CONCLUÍDO ===")
-    
+    time.sleep(1)
     listServices = driver.find_elements(By.CLASS_NAME, "centerElem")
 
     for service in listServices:

@@ -1,4 +1,5 @@
 import os
+import time
 import pdfplumber
 from pathlib import Path
 from dotenv import load_dotenv
@@ -68,6 +69,7 @@ def generate_report(pdf_path, txt_dir, report_dir):
     prompt = PromptTemplate(input_variables=['text'], template=template)
     chain = prompt | llm | StrOutputParser()
 
+    time.sleep(4)
     print(f"Gerando relatório para: {pdf_name}")
     relatorio = chain.invoke({'text': text_data})
 

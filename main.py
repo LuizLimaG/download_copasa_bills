@@ -44,15 +44,17 @@ for key, value in firefox_prefs.items():
 
 options.add_argument("--disable-blink-features=AutomationControlled")
 driver = webdriver.Firefox(options=options)
-wait = WebDriverWait(driver, 60)
 driver.maximize_window()
 
-login_copasa(driver=driver, wait=wait)
-select_all_option(driver=driver)
-download_all_bills(driver=driver, download_folder=r"C:\Users\luizz\PROJETOS\antisuicidio\contas")
+def main(cpf, password, webmail_user, webmail_password, webmail_host):
+    wait = WebDriverWait(driver, 60)
 
-end_time = time.time()
-total_seconds = end_time - start_time
-minutes = int(total_seconds // 60)
-seconds = int(total_seconds % 60)
-print(f"Tempo total de execução: {minutes}min {seconds}s")
+    login_copasa(driver=driver, wait=wait, cpf=cpf, password=password, webmail_user=webmail_user, webmail_password=webmail_password, webmail_host=webmail_host)
+    select_all_option(driver=driver)
+    download_all_bills(driver=driver, download_folder=r"C:\Users\luizz\PROJETOS\antisuicidio\contas")
+
+    end_time = time.time()
+    total_seconds = end_time - start_time
+    minutes = int(total_seconds // 60)
+    seconds = int(total_seconds % 60)
+    print(f"Tempo total de execução: {minutes}min {seconds}s")

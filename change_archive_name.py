@@ -1,4 +1,5 @@
 import os
+import time
 import shutil
 import pdfplumber
 from dotenv import load_dotenv
@@ -33,6 +34,7 @@ def rename_pdf(pdf_path):
     prompt = PromptTemplate(input_variables=['text'], template=template)
     chain = prompt | llm | StrOutputParser()
 
+    time.sleep(4)
     novo_nome = chain.invoke({'text': text_data}).strip()
     diretorio = os.path.dirname(pdf_path)
     novo_caminho = os.path.join(diretorio, novo_nome)

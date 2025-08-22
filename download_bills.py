@@ -10,7 +10,7 @@ from change_archive_name import rename_all_pdfs
 from analysis_generator import generate_reports_from_folder
 from login import login_copasa
 from select_all import select_all_option
-from logoff import logoff  # seu logout
+from logoff import logoff
 
 def wait_for_download(download_folder, timeout=30):
     initial_files = set(os.listdir(download_folder))
@@ -33,16 +33,16 @@ def download_all_bills(driver, download_folder, timeout=20):
     i = 0
 
     start_time = time.time()
-    RELAUNCH_TIME = 13 * 60  # 13 minutos
+    RELAUNCH_TIME = 13 * 60
 
-    while True:
+    rows = driver.find_elements(By.CSS_SELECTOR, selector)
+    while i < len(rows):
+        modal_detector(driver=driver, wait=wait)
         rows = driver.find_elements(By.CSS_SELECTOR, selector)
-        if i >= len(rows):
-            break
 
         tempo_decorrido = time.time() - start_time
         if tempo_decorrido >= RELAUNCH_TIME:
-            print("⏳ Tempo limite atingido. Reautenticando...")
+            print("Tempo limite atingido. Reautenticando...")
             logoff(driver, wait)
             login_copasa(driver, wait)
             select_all_option(driver)
@@ -51,31 +51,31 @@ def download_all_bills(driver, download_folder, timeout=20):
             continue
 
         try:
+            modal_detector(driver=driver, wait=wait)
             current_row = rows[i]
             radio_button = current_row.find_element(By.CSS_SELECTOR, "input[type='radio']")
             radio_button.click()
-
+            modal_detector(driver=driver, wait=wait)
             proceed_button = wait.until(
                 EC.element_to_be_clickable((By.ID, "btnproceed"))
             )
             proceed_button.click()
-
+            modal_detector(driver=driver, wait=wait)
             download_button = wait.until(
                 EC.element_to_be_clickable((By.CLASS_NAME, "fa-download"))
             )
             download_button.click()
-            print(f"Baixando fatura {i+1}.")
+            print(f"Baixando fatura {i+1}")
             wait_for_download(download_folder=download_folder)
+            modal_detector(driver=driver, wait=wait)
+        except:
+            print(f"Fatura {i+1} não encontrada")
 
-        except Exception as e:
-            print(f"Fatura {i+1} sem download disponível.")
-
-        try:
-            back_to_list(driver=driver, wait=wait)
-        except Exception as e:
-            print(f"⚠️ Falha ao voltar para lista (fatura {i + 1}): {e}")
-
+        back_to_list(driver=driver, wait=wait)
+        modal_detector(driver=driver, wait=wait)
         i += 1
+    
+    print("Downloads concluídos com sucesso!")
 
     rename_all_pdfs(download_folder)
     txt_folder = os.path.join(download_folder, "contas_txt")
