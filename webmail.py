@@ -60,7 +60,6 @@ class WebmailTokenExtractor:
             element.click()
             return True
         except TimeoutException:
-            print(f"⏰ Timeout ao tentar clicar em {locator}")
             return False
     
     def _safe_send_keys(self, locator: tuple, text: str, timeout: int = None) -> bool:
@@ -71,7 +70,6 @@ class WebmailTokenExtractor:
             element.send_keys(text)
             return True
         except TimeoutException:
-            print(f"⏰ Timeout ao enviar texto para {locator}")
             return False
     
     def _wait_for_page_load(self, expected_element: tuple = None) -> bool:
@@ -82,19 +80,16 @@ class WebmailTokenExtractor:
                 self.wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
             return True
         except TimeoutException:
-            print("⏰ Timeout no carregamento da página")
             return False
     
     def login_to_webmail(self) -> bool:
         try:
-            print(f"🌐 Acessando webmail: {self.host}")
             self.driver.get(self.host)
             self.driver.maximize_window()
             
             if not self._wait_for_page_load(self.SELECTORS['login']['username']):
                 return False
             
-            print("👤 Inserindo credenciais...")
             if not self._safe_send_keys(self.SELECTORS['login']['username'], self.username):
                 return False
             if not self._safe_send_keys(self.SELECTORS['login']['password'], self.password):
@@ -102,12 +97,10 @@ class WebmailTokenExtractor:
             return self._safe_click(self.SELECTORS['login']['submit']) and \
                    self._wait_for_page_load(self.SELECTORS['search']['form'])
         except WebDriverException as e:
-            print(f"❌ Erro do WebDriver durante login: {e}")
             return False
     
     def search_copasa_email(self) -> bool:
         try:
-            print("🔍 Buscando email da COPASA...")
             search_input = WebDriverWait(self.driver, self.SEARCH_TIMEOUT).until(
                 EC.element_to_be_clickable(self.SELECTORS['search']['form'])
             )
@@ -122,7 +115,6 @@ class WebmailTokenExtractor:
             found_email.click()
             return True
         except TimeoutException:
-            print("⏰ Timeout - email não encontrado")
             return False
     
     def extract_token_from_email(self) -> Optional[str]:
@@ -143,7 +135,6 @@ class WebmailTokenExtractor:
             return None
     
     def get_authentication_token(self, driver: WebDriver) -> Optional[str]:
-        print("🚀 Iniciando extração de token COPASA...")
         self._setup_wait(driver)
         if not self.login_to_webmail():
             return None
@@ -160,5 +151,4 @@ def webmail_access(driver: WebDriver, host: str, email_user: str, email_password
         extractor = WebmailTokenExtractor(host, email_user, email_password)
         return extractor.get_authentication_token(driver)
     except Exception as e:
-        print(f"❌ Erro na função webmail_access: {e}")
         return None

@@ -5,6 +5,8 @@ from select_all import select_all_option
 from modal_detector import modal_detector
 
 def back_to_list(driver, wait):
+    no_invoice_detected = False
+    
     try:
         try:
             fast_wait = WebDriverWait(driver, 3)
@@ -13,12 +15,7 @@ def back_to_list(driver, wait):
             )
             text = container.text.strip().upper()
             if "NAO EXISTE DEBITOS PARA A MATRICULA INFORMADA" in text:
-                print("Não há fatura para essa matrícula")
-                back_button = driver.find_element(By.ID, 'btnSelect')
-                back_button.click()
-                modal_detector(driver, wait)
-                select_all_option(driver=driver)
-                return
+                no_invoice_detected = True
         except:
             pass
         
@@ -29,6 +26,11 @@ def back_to_list(driver, wait):
         modal_detector(driver, wait)
 
     except:
-        print(f"Erro ao voltar")
+        pass
 
     select_all_option(driver=driver)
+    
+    if no_invoice_detected:
+        return "no_invoice"
+    else:
+        return "success"

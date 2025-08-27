@@ -15,7 +15,6 @@ def generate_report(pdf_path, txt_dir, report_dir):
     txt_path = Path(txt_dir) / f"{pdf_name}.txt"
     report_path = Path(report_dir) / f"{pdf_name}_relatorio.txt"
 
-    # Cria diretórios se não existirem
     os.makedirs(txt_dir, exist_ok=True)
     os.makedirs(report_dir, exist_ok=True)
 

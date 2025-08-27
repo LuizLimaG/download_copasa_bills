@@ -1,7 +1,7 @@
+import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
-import time
 
 def modal_detector(driver, wait):
     try:
@@ -29,9 +29,9 @@ def modal_detector(driver, wait):
                     driver.refresh()
                     break
         else:
-            print('Nenhum modal nocivo foi encontrado.')
+            return
 
     except NoSuchElementException:
-        print('Nenhum modal encontrado')
+        return
     except:
-        print('Erro ao encontrar o modal')
+        return
