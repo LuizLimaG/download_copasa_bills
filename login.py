@@ -24,9 +24,7 @@ def login_copasa(driver, wait, cpf, password, webmail_user, webmail_password, we
         EC.element_to_be_clickable((By.CLASS_NAME, "btn-primary"))
     )
     validateLogin.click()
-    
-    modal_detector(driver=driver, wait=wait)
-    
+        
     token = webmail_access(driver, webmail_host, webmail_user, webmail_password)
 
     driver.get("https://copasaportalprd.azurewebsites.net/Copasa.Portal/Login/token")
@@ -40,9 +38,7 @@ def login_copasa(driver, wait, cpf, password, webmail_user, webmail_password, we
         EC.element_to_be_clickable((By.CLASS_NAME, "btn-primary"))
     )
     tokenValidate.click()
-    
-    modal_detector(driver=driver, wait=wait)
-    
+        
     select_agency(driver=driver, wait=wait)
     
     print(f"=== LOGIN COPASA CONCLUÍDO ===\n")

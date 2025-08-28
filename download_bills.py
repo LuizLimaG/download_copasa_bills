@@ -40,12 +40,12 @@ def download_all_bills(driver, download_folder, timeout=20):
     i = 0
 
     start_time = time.time()
-    RELAUNCH_TIME = 13 * 60
+    RELAUNCH_TIME = 0.5 * 60
 
     rows = driver.find_elements(By.CSS_SELECTOR, selector)
     total_rows = len(rows)
     
-    print(f"Iniciando download de {total_rows} faturas")
+    print(f"Iniciando download de {total_rows} faturas\n")
     
     while i < len(rows):
         modal_detector(driver=driver, wait=wait)
@@ -53,12 +53,8 @@ def download_all_bills(driver, download_folder, timeout=20):
 
         tempo_decorrido = time.time() - start_time
         if tempo_decorrido >= RELAUNCH_TIME:
-            print("Reautenticando...")
-            safe_rename_after_download(download_folder)
-            
+            print(f"\nReautenticando...\n")           
             logoff(driver, wait)
-            login_copasa(driver, wait)
-            select_all_option(driver)
             start_time = time.time()
             rows = driver.find_elements(By.CSS_SELECTOR, selector)
             continue
@@ -83,10 +79,10 @@ def download_all_bills(driver, download_folder, timeout=20):
             download_success = wait_for_download(download_folder=download_folder)
             modal_detector(driver=driver, wait=wait)
         except Exception as e:
-            print(f"Fatura {i+1}/{total_rows} - Erro: {str(e)[:50]}...")
+            print(f"\nFatura {i+1}/{total_rows} - Erro: fatura não encontrada ou tempo esgotado")
 
         status = "OK" if download_success else "ERRO"
-        print(f"[{i+1}/{total_rows}] {status}")
+        print(f"\n[{i+1}/{total_rows}] {status}")
         
         safe_rename_after_download(download_folder)
 
@@ -131,13 +127,13 @@ def download_bills_by_matricula(driver, download_folder, matriculas, timeout=20)
     max_passes = 10
     passes = 0
     
-    print(f"Buscando {len(pending)} matrí­culas: {sorted(pending)}")
+    print(f"Buscando {len(pending)} matrículas: {pending}\n")
 
     while pending and passes < max_passes:
         passes += 1
         modal_detector(driver=driver, wait=wait)
         
-        print(f"Varredura {passes}/{max_passes} - Pendentes: {len(pending)}")
+        print(f"Varredura {passes}/{max_passes} - Pendentes: {len(pending)}\n")
 
         if time.time() - start_time >= RELAUNCH_TIME:
             print("Reautenticando...")
@@ -200,7 +196,7 @@ def download_bills_by_matricula(driver, download_folder, matriculas, timeout=20)
                 ok = wait_for_download(download_folder=download_folder)
 
                 if ok:
-                    print(f"Matrícula {linha} - BAIXADA")
+                    print(f"Matrícula {linha} - BAIXADA\n")
                     processed.add(linha)
                     pending.discard(linha)
                     failed_attempts.pop(linha, None)
@@ -229,7 +225,7 @@ def download_bills_by_matricula(driver, download_folder, matriculas, timeout=20)
             except (StaleElementReferenceException, NoSuchElementException, TimeoutException) as e:
                 if 'linha' in locals():
                     failed_attempts[linha] = failed_attempts.get(linha, 0) + 1
-                    print(f"Matrícula {linha} - ERRO ({failed_attempts[linha]}/3)\n")
+                    print(f"Matrícula {linha} - ERRO ({failed_attempts[linha]}/3): fatura não encontrada ou tempo esgotado")
                     if failed_attempts[linha] >= 3:
                         print(f"Matrícula {linha} - REMOVIDA PERMANENTEMENTE\n")
                         pending.discard(linha)
@@ -259,7 +255,7 @@ def download_bills_by_matricula(driver, download_folder, matriculas, timeout=20)
             if not remaining_pending:
                 print("Todas as matrí­culas foram processadas ou removidas")
                 break
-            print(f"Nenhuma matrí­cula pendente encontrada nesta varredura")
+            print(f"Nenhuma matrícula pendente encontrada nesta varredura")
 
         if not pending:
             break
@@ -267,9 +263,9 @@ def download_bills_by_matricula(driver, download_folder, matriculas, timeout=20)
         print(f"DEBUG - Pendentes: {sorted(pending)}, Removidas: {sorted(removed_matriculas)}")
 
     if pending:
-        print(f"Matrí­culas não processadas após {max_passes} varreduras: {sorted(pending)}")
+        print(f"Matrículas não processadas após {max_passes} varreduras: {sorted(pending)}")
     else:
-        print("Todas as matrí­culas foram processadas!")
+        print("Todas as matrículas foram processadas!")
 
     print("Processamento final...")
     safe_rename_after_download(download_folder)

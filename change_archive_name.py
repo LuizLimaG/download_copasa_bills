@@ -11,9 +11,8 @@ load_dotenv()
 
 def get_new_filename_from_pdf(pdf_path):
     """
-    Extrai o conteúdo do PDF e gera o novo nome usando LLM,
-    mas sem renomear o arquivo ainda.
-    """
+    Usa LLM para extrair o novo nome do arquivo a partir do conteúdo do PDF.
+    """  
     with pdfplumber.open(pdf_path) as pdf:
         text_data = ""
         for page in pdf.pages:
@@ -24,16 +23,29 @@ def get_new_filename_from_pdf(pdf_path):
     llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash-lite', temperature=0.2)
 
     template = """
-    Você recebe o conteúdo de uma fatura da Copasa e deve retornar APENAS:
-    Um nome de arquivo no formato: <nomecondominio>_<bloco>_<MM-AAAA>.pdf
+    Você receberá o conteúdo textual de uma fatura da Copasa.
 
-    Exemplo: CondominioSol_BlocoA_01-2024.pdf SE CASO NAO HOUVER BLOCO REMOVA 'BLOCO' DO NOME
+    Sua tarefa é gerar APENAS um nome de arquivo no seguinte formato:
 
-    Retorne APENAS o nome do arquivo, sem explicação adicional.
+    <nome_condominio_ou_edificio>_<bloco_se_existir>_<MM-AAAA>.pdf
+
+    Regras:
+    1. Se o imóvel for um CONDOMÍNIO, use o prefixo "Condominio".
+    2. Se o imóvel for um EDIFÍCIO, use o prefixo "Edificio".
+    3. Se houver identificação de BLOCO, inclua-o após o nome. Exemplo: "BlocoA".
+    4. Se NÃO houver bloco, omita essa parte.
+    5. A data deve estar no formato mês-ano (MM-AAAA).
+    6. Use apenas letras e números, sem acentos, espaços ou caracteres especiais. Substitua espaços por underline `_`.
+    7. Retorne APENAS o nome do arquivo final, sem explicações adicionais.
+
+    Exemplo esperado:
+    CONDOMINIO SOL BLOCO-A 01-2024.pdf
+    EDIFICIO CENTRAL 07-2023.pdf
 
     Conteúdo da fatura:
     {text}
     """
+
 
     prompt = PromptTemplate(input_variables=['text'], template=template)
     chain = prompt | llm | StrOutputParser()
@@ -157,7 +169,7 @@ def rename_all_pdfs_safe_mode(pasta):
                 novo_caminho = os.path.join(diretorio, novo_nome)
                 shutil.move(caminho, novo_caminho)
                 nomes_ja_processados.add(novo_nome)
-                print(f"[RENOMEADO] {nome_atual} -> {novo_nome}")
+                print(f"[RENOMEADO] {nome_atual} -> {novo_nome}\n")
                 arquivos_processados.append(novo_caminho)
                 
         except Exception as e:
