@@ -66,12 +66,22 @@ def executar_main_interno(driver, wait, cpf, password, webmail_user, webmail_pas
             download_bills_by_matricula(
                 driver=driver,
                 download_folder=donwload_dir,
-                matriculas=matriculas
+                matriculas=matriculas,
+                cpf=cpf,
+                password=password,
+                webmail_user=webmail_user,
+                webmail_password=webmail_password,
+                webmail_host=webmail_host
             )
         else:
             download_all_bills(
                 driver=driver,
-                download_folder=donwload_dir
+                download_folder=donwload_dir,
+                cpf=cpf,
+                password=password,
+                webmail_user=webmail_user,
+                webmail_password=webmail_password,
+                webmail_host=webmail_host
             )
         
         return True

@@ -6,7 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import StaleElementReferenceException, TimeoutException, NoSuchElementException
 
 from logoff import logoff
-from login import login_copasa
+from login import login_copasa_simple
 from back_to_list import back_to_list
 from select_all import select_all_option
 from modal_detector import modal_detector
@@ -34,30 +34,36 @@ def safe_rename_after_download(download_folder):
     except Exception as e:
         print(f"Erro ao processar arquivos: {e}")
 
-def download_all_bills(driver, download_folder, timeout=20):
+def download_all_bills(driver, download_folder, cpf, password, webmail_user, webmail_password, webmail_host, timeout=20):
     wait = WebDriverWait(driver, timeout=timeout)
     selector = "#tbIdentificador tbody tr"
     i = 0
 
     start_time = time.time()
-    RELAUNCH_TIME = 0.5 * 60
+    RELAUNCH_TIME = int(os.getenv("RELAUNCH_TIME"))
 
     rows = driver.find_elements(By.CSS_SELECTOR, selector)
     total_rows = len(rows)
     
     print(f"Iniciando download de {total_rows} faturas\n")
     
-    while i < len(rows):
+    while i < total_rows:
         modal_detector(driver=driver, wait=wait)
+        
         rows = driver.find_elements(By.CSS_SELECTOR, selector)
 
         tempo_decorrido = time.time() - start_time
         if tempo_decorrido >= RELAUNCH_TIME:
             print(f"\nReautenticando...\n")           
             logoff(driver, wait)
+            login_copasa_simple(driver, wait, cpf, password, webmail_user, webmail_password, webmail_host)
+            select_all_option(driver)
             start_time = time.time()
             rows = driver.find_elements(By.CSS_SELECTOR, selector)
-            continue
+
+        if i >= len(rows):
+            print(f"Índice {i} maior que número de linhas disponíveis ({len(rows)}). Finalizando.")
+            break
 
         download_success = False
         try:
@@ -66,11 +72,13 @@ def download_all_bills(driver, download_folder, timeout=20):
             radio_button = current_row.find_element(By.CSS_SELECTOR, "input[type='radio']")
             radio_button.click()
             modal_detector(driver=driver, wait=wait)
+            
             proceed_button = wait.until(
                 EC.element_to_be_clickable((By.ID, "btnproceed"))
             )
             proceed_button.click()
             modal_detector(driver=driver, wait=wait)
+            
             download_button = wait.until(
                 EC.element_to_be_clickable((By.CLASS_NAME, "fa-download"))
             )
@@ -78,6 +86,7 @@ def download_all_bills(driver, download_folder, timeout=20):
             
             download_success = wait_for_download(download_folder=download_folder)
             modal_detector(driver=driver, wait=wait)
+            
         except Exception as e:
             print(f"\nFatura {i+1}/{total_rows} - Erro: fatura não encontrada ou tempo esgotado")
 
@@ -94,7 +103,7 @@ def download_all_bills(driver, download_folder, timeout=20):
         
         i += 1
     
-    print("Downloads concluí­dos! Gerando relatórios...")
+    print("Downloads concluídos! Gerando relatórios...")
     safe_rename_after_download(download_folder)
     
     try:
@@ -109,7 +118,7 @@ def download_all_bills(driver, download_folder, timeout=20):
 def _normalize_matricula(s: str) -> str:
     return "".join(ch for ch in str(s).strip() if ch.isdigit())
 
-def download_bills_by_matricula(driver, download_folder, matriculas, timeout=20):
+def download_bills_by_matricula(driver, download_folder, matriculas, cpf, password, webmail_user, webmail_password, webmail_host, timeout=20):
     wait = WebDriverWait(driver, timeout=timeout)
     selector = "#tbIdentificador tbody tr"
 
@@ -119,11 +128,11 @@ def download_bills_by_matricula(driver, download_folder, matriculas, timeout=20)
     removed_matriculas = set()
 
     if not pending:
-        print("Nenhuma matrí­cula fornecida.")
+        print("Nenhuma matrícula fornecida.")
         return
 
     start_time = time.time()
-    RELAUNCH_TIME = int(os.getenv("RELAUNCH_TIME", "780"))
+    RELAUNCH_TIME = int(os.getenv("RELAUNCH_TIME"))
     max_passes = 10
     passes = 0
     
@@ -136,11 +145,9 @@ def download_bills_by_matricula(driver, download_folder, matriculas, timeout=20)
         print(f"Varredura {passes}/{max_passes} - Pendentes: {len(pending)}\n")
 
         if time.time() - start_time >= RELAUNCH_TIME:
-            print("Reautenticando...")
-            safe_rename_after_download(download_folder)
-            
+            print("Reautenticando...")            
             logoff(driver, wait)
-            login_copasa(driver, wait)
+            login_copasa_simple(driver, wait, cpf, password, webmail_user, webmail_password, webmail_host)
             select_all_option(driver)
             start_time = time.time()
 
@@ -246,14 +253,14 @@ def download_bills_by_matricula(driver, download_folder, matriculas, timeout=20)
 
         for matricula, attempts in list(failed_attempts.items()):
             if attempts >= 3 and matricula in pending:
-                print(f"FORÇAR REMOÇÃO: Matrícula {matricula}") # ??
+                print(f"FORÇAR REMOÇÃO: Matrícula {matricula}")
                 pending.discard(matricula)
                 removed_matriculas.add(matricula)
 
         if not found_this_pass and not matricula_processada_nesta_iteracao:
             remaining_pending = pending - removed_matriculas
             if not remaining_pending:
-                print("Todas as matrí­culas foram processadas ou removidas")
+                print("Todas as matrículas foram processadas ou removidas")
                 break
             print(f"Nenhuma matrícula pendente encontrada nesta varredura")
 
