@@ -9,7 +9,6 @@ from logoff import logoff
 from login import login_copasa_simple
 from back_to_list import back_to_list
 from select_all import select_all_option
-from modal_detector import modal_detector
 from change_archive_name import rename_all_pdfs_safe_mode
 from analysis_generator import generate_reports_from_folder
 
@@ -48,8 +47,6 @@ def download_all_bills(driver, download_folder, cpf, password, webmail_user, web
     print(f"Iniciando download de {total_rows} faturas\n")
     
     while i < total_rows:
-        modal_detector(driver=driver, wait=wait)
-        
         rows = driver.find_elements(By.CSS_SELECTOR, selector)
 
         tempo_decorrido = time.time() - start_time
@@ -67,17 +64,14 @@ def download_all_bills(driver, download_folder, cpf, password, webmail_user, web
 
         download_success = False
         try:
-            modal_detector(driver=driver, wait=wait)
             current_row = rows[i]
             radio_button = current_row.find_element(By.CSS_SELECTOR, "input[type='radio']")
             radio_button.click()
-            modal_detector(driver=driver, wait=wait)
             
             proceed_button = wait.until(
                 EC.element_to_be_clickable((By.ID, "btnproceed"))
             )
             proceed_button.click()
-            modal_detector(driver=driver, wait=wait)
             
             download_button = wait.until(
                 EC.element_to_be_clickable((By.CLASS_NAME, "fa-download"))
@@ -85,7 +79,6 @@ def download_all_bills(driver, download_folder, cpf, password, webmail_user, web
             download_button.click()
             
             download_success = wait_for_download(download_folder=download_folder)
-            modal_detector(driver=driver, wait=wait)
             
         except Exception as e:
             print(f"\nFatura {i+1}/{total_rows} - Erro: fatura não encontrada ou tempo esgotado")
@@ -97,7 +90,6 @@ def download_all_bills(driver, download_folder, cpf, password, webmail_user, web
 
         try:
             back_to_list(driver=driver, wait=wait)
-            modal_detector(driver=driver, wait=wait)
         except Exception:
             pass
         
@@ -133,14 +125,13 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
 
     start_time = time.time()
     RELAUNCH_TIME = int(os.getenv("RELAUNCH_TIME"))
-    max_passes = 10
+    max_passes = 50
     passes = 0
     
     print(f"Buscando {len(pending)} matrículas: {pending}\n")
 
     while pending and passes < max_passes:
         passes += 1
-        modal_detector(driver=driver, wait=wait)
         
         print(f"Varredura {passes}/{max_passes} - Pendentes: {len(pending)}\n")
 
@@ -157,7 +148,6 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
 
         for row in rows:
             try:
-                modal_detector(driver=driver, wait=wait)
                 linha_raw = row.find_element(By.CSS_SELECTOR, "span.IdentifierNumber").text
                 linha = _normalize_matricula(linha_raw)
 
@@ -177,11 +167,9 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
 
                 radio_button = row.find_element(By.CSS_SELECTOR, "input[type='radio']")
                 radio_button.click()
-                modal_detector(driver=driver, wait=wait)
 
                 proceed_button = wait.until(EC.element_to_be_clickable((By.ID, "btnproceed")))
                 proceed_button.click()
-                modal_detector(driver=driver, wait=wait)
 
                 try:
                     no_debt_element = WebDriverWait(driver, 2).until(
@@ -192,7 +180,6 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
                         pending.discard(linha)
                         removed_matriculas.add(linha)
                         back_to_list(driver=driver, wait=wait)
-                        modal_detector(driver=driver, wait=wait)
                         matricula_processada_nesta_iteracao = True
                         break
                 except:
@@ -225,7 +212,6 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
                     pending.discard(linha)
                     removed_matriculas.add(linha)
                 
-                modal_detector(driver=driver, wait=wait)
                 matricula_processada_nesta_iteracao = True
                 break
 
@@ -240,7 +226,6 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
                 safe_rename_after_download(download_folder)
                 try:
                     back_to_list(driver=driver, wait=wait)
-                    modal_detector(driver=driver, wait=wait)
                 except Exception:
                     pass
                 matricula_processada_nesta_iteracao = True

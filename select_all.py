@@ -2,8 +2,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from modal_detector import modal_detector
-
 def select_all_option(driver, timeout=60):
     wait = WebDriverWait(driver=driver, timeout=timeout)
     select = wait.until(

@@ -2,7 +2,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from select_all import select_all_option
-from modal_detector import modal_detector
 
 def back_to_list(driver, wait):
     no_invoice_detected = False
@@ -23,8 +22,6 @@ def back_to_list(driver, wait):
             EC.element_to_be_clickable((By.ID, 'btnSelect'))
         )
         back_button.click()
-        modal_detector(driver, wait)
-
     except:
         pass
 
