@@ -5,13 +5,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 webmail_host = os.environ['webmail_host']
-first_cpf = os.getenv('COPASA_USER')
-second_cpf = os.getenv('COPASA_USER_DOIS')
+first_cpf = os.getenv('COPASA_USER_CONTATO')
+second_cpf = os.getenv('COPASA_USER_FINANCEIRO')
 
 matriculas_por_cpf = {
     first_cpf: {
-        1: ['3320768'],
-        29: ['169966067', '3320768', '23668058', '3320768'],
+        1: ['34392442', '211388494', '3250498', '49863660', '3320768', '235628954', '139834451', '23639104', '133029930', '23640148', '172284473', '120638622', '221105912', '147404983'],
+        2: ['135631831', '169966097', '1198606', '23668058', '103267878', '154721956', '53380284', '48680512', '155368737'],
         3: ['132325195', '128133252'],
         8: ['27040862', '122089910'],
         11: ['6713062'],
@@ -27,16 +27,16 @@ DOWNLOAD_MODE = os.getenv("DOWNLOAD_MODE", "all")
 acessos = [
     {
         'cpf': first_cpf,
-        'password': os.getenv('COPASA_PASSWORD'),
-        'webmail_user': os.getenv('WEBMAIL_USER'),
-        'webmail_password': os.getenv('WEBMAIL_PASSWORD'),
+        'password': os.getenv('COPASA_PASSWORD_CONTATO'),
+        'webmail_user': os.getenv('WEBMAIL_USER_CONTATO'),
+        'webmail_password': os.getenv('WEBMAIL_PASSWORD_CONTATO'),
         'matriculas_key': first_cpf
     },
     {
         'cpf': second_cpf,
-        'password': os.getenv('COPASA_PASSWORD_DOIS'),
-        'webmail_user': os.getenv('WEBMAIL_USER_DOIS'),
-        'webmail_password': os.getenv('WEBMAIL_PASSWORD_DOIS'),
+        'password': os.getenv('COPASA_PASSWORD_FINANCEIRO'),
+        'webmail_user': os.getenv('WEBMAIL_USER_FINANCEIRO'),
+        'webmail_password': os.getenv('WEBMAIL_PASSWORD_FINANCEIRO'),
         'matriculas_key': second_cpf
     },
 ]
