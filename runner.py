@@ -8,32 +8,32 @@ load_dotenv()
 webmail_host = os.getenv('WEBMAIL_HOST')
 db = DatabaseManager()
 
-credenciais = db.get_credenciais_ativas()
+credentials = db.get_credenciais_ativas()
 
-for cred in credenciais:
+for cred in credentials:
     cpf = cred['cpf']
     password = cred['password']
     webmail_user = cred['webmail_user']
     webmail_password = cred['webmail_password']
     
-    matriculas = db.get_matriculas_para_cpf(cpf, incluir_pendentes=True, verificar_duplicatas=True)
+    identifiers = db.get_matriculas_para_cpf(cpf, incluir_pendentes=True, verificar_duplicatas=True)
 
     print(f"\n{'='*50}")
     print(f"🚀 Iniciando processamento para CPF {cpf}")
-    print(f"🔍 Matrículas para processar: {len(matriculas)}")
-    if matriculas:
-        print(f"📋 Lista de matrículas: {matriculas}")
+    print(f"🔍 Matrículas para processar: {len(identifiers)}")
+    if identifiers:
+        print(f"📋 Lista de matrículas: {identifiers}")
     print(f"{'='*50}")
 
     try:
-        if matriculas:
+        if identifiers:
             main(
                 cpf=cpf,
                 password=password,
                 webmail_user=webmail_user,
                 webmail_password=webmail_password,
                 webmail_host=webmail_host,
-                matriculas=matriculas
+                identifiers=identifiers
             )
             print(f"✅ Finalizado CPF {cpf} com sucesso.\n")
         else:
