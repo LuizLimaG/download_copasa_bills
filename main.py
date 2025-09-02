@@ -1,10 +1,10 @@
 import os
 import time
-from login import login_copasa
 from selenium import webdriver
+from login import login_copasa
 from select_all import select_all_option
-from download_bills import download_all_bills, download_bills_by_matricula
 from selenium.webdriver.support.ui import WebDriverWait
+from download_bills import download_all_bills, download_bills_by_matricula
 from selenium.common.exceptions import TimeoutException as SeleniumTimeoutException
 
 MAX_TENTATIVAS = 3
@@ -17,7 +17,6 @@ def timeout_handler(signum, frame):
     raise CustomTimeoutException("Timeout: Operação demorou mais que 60 segundos")
 
 def create_driver():
-    """Cria uma nova instância do driver Firefox"""
     donwload_dir = os.getenv("DOWNLOAD_DIR")
     firefox_prefs = {
         "browser.download.folderList": 2,
@@ -42,13 +41,11 @@ def create_driver():
         options.set_preference(key, value)
 
     options.add_argument("--disable-blink-features=AutomationControlled")
-    # options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
     driver.maximize_window()
     return driver
 
-def executar_main_interno(driver, wait, cpf, password, webmail_user, webmail_password, webmail_host, matriculas, donwload_dir):
-    """Executa a lógica principal do main com timeout"""    
+def executar_main_interno(driver, wait, cpf, password, webmail_user, webmail_password, webmail_host, matriculas, donwload_dir, callbacks=None):
     try:
         login_copasa(
             driver=driver,
@@ -91,10 +88,16 @@ def executar_main_interno(driver, wait, cpf, password, webmail_user, webmail_pas
     except Exception as e:
         raise e
 
-def main(cpf, password, webmail_user, webmail_password, webmail_host, matriculas=None):
+def main(cpf, password, webmail_user, webmail_password, webmail_host, matriculas=None, success_callback=None, failure_callback=None, no_invoice_callback=None):
     start_time = time.time()
     donwload_dir = os.getenv("DOWNLOAD_DIR")
     driver = None
+    
+    callbacks = {
+        'success': success_callback,
+        'failure': failure_callback,
+        'no_invoice': no_invoice_callback
+    } if any([success_callback, failure_callback, no_invoice_callback]) else None
     
     for tentativa in range(1, MAX_TENTATIVAS + 1):
         try:
@@ -111,7 +114,7 @@ def main(cpf, password, webmail_user, webmail_password, webmail_host, matriculas
             
             executar_main_interno(
                 driver, wait, cpf, password, webmail_user, 
-                webmail_password, webmail_host, matriculas, donwload_dir
+                webmail_password, webmail_host, matriculas, donwload_dir, callbacks
             )
             
             print(f"✅ Sucesso na tentativa {tentativa} para CPF {cpf}")

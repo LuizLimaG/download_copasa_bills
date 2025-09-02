@@ -6,9 +6,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import StaleElementReferenceException, TimeoutException, NoSuchElementException
 
 from logoff import logoff
-from login import login_copasa_simple
 from back_to_list import back_to_list
+from login import login_copasa_simple
 from select_all import select_all_option
+from database_manager import DatabaseManager
 from change_archive_name import rename_all_pdfs_safe_mode
 from analysis_generator import generate_reports_from_folder
 
@@ -113,19 +114,22 @@ def _normalize_matricula(s: str) -> str:
 def download_bills_by_matricula(driver, download_folder, matriculas, cpf, password, webmail_user, webmail_password, webmail_host, timeout=20):
     wait = WebDriverWait(driver, timeout=timeout)
     selector = "#tbIdentificador tbody tr"
+    db = DatabaseManager()
 
-    pending = {_normalize_matricula(m) for m in (matriculas or []) if str(m).strip()}
+    matriculas_filtradas = db.filtrar_matriculas_nao_baixadas(matriculas, verificar_hoje_apenas=True)
+    
+    pending = {_normalize_matricula(m) for m in (matriculas_filtradas or []) if str(m).strip()}
     processed = set()
     failed_attempts = {}
     removed_matriculas = set()
 
     if not pending:
-        print("Nenhuma matrícula fornecida.")
+        print("Nenhuma matrícula pendente para processar (todas já foram baixadas ou lista vazia).")
         return
 
     start_time = time.time()
     RELAUNCH_TIME = int(os.getenv("RELAUNCH_TIME"))
-    max_passes = 50
+    max_passes = 100
     passes = 0
     
     print(f"Buscando {len(pending)} matrículas: {pending}\n")
@@ -154,12 +158,20 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
                 if linha not in pending or linha in removed_matriculas:
                     continue
 
+                if db.matricula_ja_baixada_hoje(linha):
+                    print(f"Matrícula {linha} - JÁ BAIXADA HOJE - REMOVENDO DA LISTA")
+                    pending.discard(linha)
+                    removed_matriculas.add(linha)
+                    matricula_processada_nesta_iteracao = True
+                    continue
+
                 found_this_pass.add(linha)
                 
                 failed_attempts[linha] = failed_attempts.get(linha, 0)
                 
                 if failed_attempts[linha] >= 3:
                     print(f"Matrícula {linha} - REMOVIDA PERMANENTEMENTE\n")
+                    db.registrar_tentativa(linha, False, "Máximo de tentativas excedido")
                     pending.discard(linha)
                     removed_matriculas.add(linha)
                     matricula_processada_nesta_iteracao = True
@@ -177,6 +189,7 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
                     )
                     if "NAO EXISTE DEBITOS PARA A MATRICULA INFORMADA" in no_debt_element.text.upper():
                         print(f"Matrícula {linha} - SEM DÉBITOS - REMOVIDA")
+                        db.registrar_tentativa(linha, False, "Sem débitos")
                         pending.discard(linha)
                         removed_matriculas.add(linha)
                         back_to_list(driver=driver, wait=wait)
@@ -191,6 +204,7 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
 
                 if ok:
                     print(f"Matrícula {linha} - BAIXADA\n")
+                    db.registrar_tentativa(linha, True)
                     processed.add(linha)
                     pending.discard(linha)
                     failed_attempts.pop(linha, None)
@@ -201,6 +215,7 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
                     print(f"Matrícula {linha} - FALHA ({failed_attempts[linha]}/3)\n")
                     if failed_attempts[linha] >= 3:
                         print(f"Matrícula {linha} - REMOVIDA PERMANENTEMENTE\n")
+                        db.registrar_tentativa(linha, False, "Falha no download")
                         pending.discard(linha)
                         removed_matriculas.add(linha)
                     safe_rename_after_download(download_folder)
@@ -209,6 +224,7 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
                 
                 if back_status == "no_invoice":
                     print(f"Matrícula {linha} - SEM FATURA - REMOVIDA\n")
+                    db.registrar_tentativa(linha, False, "Sem fatura disponível")
                     pending.discard(linha)
                     removed_matriculas.add(linha)
                 
@@ -221,6 +237,7 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
                     print(f"Matrícula {linha} - ERRO ({failed_attempts[linha]}/3): fatura não encontrada ou tempo esgotado")
                     if failed_attempts[linha] >= 3:
                         print(f"Matrícula {linha} - REMOVIDA PERMANENTEMENTE\n")
+                        db.registrar_tentativa(linha, False, str(e))
                         pending.discard(linha)
                         removed_matriculas.add(linha)
                 safe_rename_after_download(download_folder)
@@ -239,6 +256,7 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
         for matricula, attempts in list(failed_attempts.items()):
             if attempts >= 3 and matricula in pending:
                 print(f"FORÇAR REMOÇÃO: Matrícula {matricula}")
+                db.registrar_tentativa(matricula, False, "Máximo de tentativas excedido")
                 pending.discard(matricula)
                 removed_matriculas.add(matricula)
 

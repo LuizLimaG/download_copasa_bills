@@ -1,4 +1,5 @@
-__pycache__
-contas
-.venv
 .env
+.venv
+contas
+__pycache__
+db-sql

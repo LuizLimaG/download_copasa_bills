@@ -1,0 +1,38 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.credenciais (
+  id integer NOT NULL DEFAULT nextval('credenciais_id_seq'::regclass),
+  cpf character varying NOT NULL UNIQUE,
+  password character varying NOT NULL,
+  webmail_user character varying NOT NULL,
+  webmail_password character varying NOT NULL,
+  ativo boolean DEFAULT true,
+  CONSTRAINT credenciais_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.cronograma_matriculas (
+  id integer NOT NULL DEFAULT nextval('cronograma_matriculas_id_seq'::regclass),
+  matricula_id integer NOT NULL,
+  mes integer NOT NULL CHECK (mes >= 1 AND mes <= 12),
+  dia_mes integer NOT NULL CHECK (dia_mes >= 1 AND dia_mes <= 31),
+  CONSTRAINT cronograma_matriculas_pkey PRIMARY KEY (id),
+  CONSTRAINT cronograma_matriculas_matricula_id_fkey FOREIGN KEY (matricula_id) REFERENCES public.matriculas(id)
+);
+CREATE TABLE public.matriculas (
+  id integer NOT NULL DEFAULT nextval('matriculas_id_seq'::regclass),
+  numero character varying NOT NULL UNIQUE,
+  credencial_id integer NOT NULL,
+  ativo boolean DEFAULT true,
+  CONSTRAINT matriculas_pkey PRIMARY KEY (id),
+  CONSTRAINT matriculas_credencial_id_fkey FOREIGN KEY (credencial_id) REFERENCES public.credenciais(id)
+);
+CREATE TABLE public.tentativas_download (
+  id integer NOT NULL DEFAULT nextval('tentativas_download_id_seq'::regclass),
+  matricula_numero character varying NOT NULL,
+  data_tentativa date NOT NULL DEFAULT CURRENT_DATE,
+  sucesso boolean DEFAULT false,
+  erro text,
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT tentativas_download_pkey PRIMARY KEY (id),
+  CONSTRAINT tentativas_download_matricula_numero_fkey FOREIGN KEY (matricula_numero) REFERENCES public.matriculas(numero)
+);
