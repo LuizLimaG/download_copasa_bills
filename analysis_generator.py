@@ -60,6 +60,7 @@ def generate_report(pdf_path, txt_dir, report_dir):
 
     OBSERVAÇÕES:
     • [Análise do consumo e alertas se necessário]
+    • [Observações presentes na fatura]
 
 
     Regras de extração (seguir à risca):

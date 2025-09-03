@@ -1,5 +1,6 @@
 .env
 .venv
 contas
+Faturas
 __pycache__
 db-sql

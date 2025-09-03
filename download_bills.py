@@ -115,6 +115,7 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
     wait = WebDriverWait(driver, timeout=timeout)
     selector = "#tbIdentificador tbody tr"
     db = DatabaseManager()
+    driver.refresh()
 
     matriculas_filtradas = db.filtrar_matriculas_nao_baixadas(matriculas, verificar_hoje_apenas=True)
     
@@ -129,7 +130,7 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
 
     start_time = time.time()
     RELAUNCH_TIME = int(os.getenv("RELAUNCH_TIME"))
-    max_passes = 100
+    max_passes = 300
     passes = 0
     
     print(f"Buscando {len(pending)} matrículas: {pending}\n")

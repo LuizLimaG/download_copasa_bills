@@ -30,9 +30,9 @@ def get_new_filename_from_pdf(pdf_path):
     <nome_condominio_ou_edificio>_<bloco_se_existir>_<MM-AAAA>.pdf
 
     Regras:
-    1. Se o imóvel for um CONDOMÍNIO, use o prefixo "Condominio".
-    2. Se o imóvel for um EDIFÍCIO, use o prefixo "Edificio".
-    3. Se houver identificação de BLOCO, inclua-o após o nome. Exemplo: "BlocoA".
+    1. Se o imóvel for um CONDOMÍNIO, use o prefixo "CONDOMINIO".
+    2. Se o imóvel for um EDIFÍCIO, use o prefixo "EDIFICIO".
+    3. Se houver identificação de BLOCO, inclua-o após o nome. Exemplo: "BLOCOA".
     4. Se NÃO houver bloco, omita essa parte.
     5. A data deve estar no formato mês-ano (MM-AAAA).
     6. Use apenas letras e números, sem acentos, espaços ou caracteres especiais. Substitua espaços por underline `_`.

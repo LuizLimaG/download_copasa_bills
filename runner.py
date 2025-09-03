@@ -33,7 +33,7 @@ for cred in credentials:
                 webmail_user=webmail_user,
                 webmail_password=webmail_password,
                 webmail_host=webmail_host,
-                identifiers=identifiers
+                matriculas=identifiers
             )
             print(f"✅ Finalizado CPF {cpf} com sucesso.\n")
         else:
