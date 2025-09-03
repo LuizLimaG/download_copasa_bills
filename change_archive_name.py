@@ -180,7 +180,6 @@ def rename_all_pdfs_safe_mode(pasta):
     print(f"Arquivos processados com sucesso: {len(arquivos_processados)}")
     print(f"Duplicatas movidas para pasta 'duplicatas': {arquivos_movidos}")
     print(f"Total de arquivos analisados: {len(pdfs_para_processar) + len(arquivos_ja_renomeados)}\n")
-    print(f"{"="*30}\n")
     
     return arquivos_processados + arquivos_ja_renomeados
     

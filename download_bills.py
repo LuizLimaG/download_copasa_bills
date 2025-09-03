@@ -115,7 +115,6 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
     wait = WebDriverWait(driver, timeout=timeout)
     selector = "#tbIdentificador tbody tr"
     db = DatabaseManager()
-    driver.refresh()
 
     matriculas_filtradas = db.filtrar_matriculas_nao_baixadas(matriculas, verificar_hoje_apenas=True)
     
@@ -271,7 +270,7 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
         if not pending:
             break
 
-        print(f"DEBUG - Pendentes: {sorted(pending)}, Removidas: {sorted(removed_matriculas)}")
+        print(f"{"="*30}\n")
 
     if pending:
         print(f"Matrículas não processadas após {max_passes} varreduras: {sorted(pending)}")

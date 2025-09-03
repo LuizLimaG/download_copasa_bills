@@ -18,12 +18,12 @@ for cred in credentials:
     
     identifiers = db.get_matriculas_para_cpf(cpf, incluir_pendentes=True, verificar_duplicatas=True)
 
-    print(f"\n{'='*50}")
+    print(f"\n{'='*50}\n")
     print(f"🚀 Iniciando processamento para CPF {cpf}")
     print(f"🔍 Matrículas para processar: {len(identifiers)}")
     if identifiers:
-        print(f"📋 Lista de matrículas: {identifiers}")
-    print(f"{'='*50}")
+        print(f"📋 Lista de matrículas: {identifiers}\n")
+    print(f"{'='*50}\n")
 
     try:
         if identifiers:
