@@ -34,80 +34,6 @@ def safe_rename_after_download(download_folder):
     except Exception as e:
         print(f"Erro ao processar arquivos: {e}")
 
-def download_all_bills(driver, download_folder, cpf, password, webmail_user, webmail_password, webmail_host, timeout=20):
-    wait = WebDriverWait(driver, timeout=timeout)
-    selector = "#tbIdentificador tbody tr"
-    i = 0
-
-    start_time = time.time()
-    RELAUNCH_TIME = int(os.getenv("RELAUNCH_TIME"))
-
-    rows = driver.find_elements(By.CSS_SELECTOR, selector)
-    total_rows = len(rows)
-    
-    print(f"Iniciando download de {total_rows} faturas\n")
-    
-    while i < total_rows:
-        rows = driver.find_elements(By.CSS_SELECTOR, selector)
-
-        tempo_decorrido = time.time() - start_time
-        if tempo_decorrido >= RELAUNCH_TIME:
-            print(f"\nReautenticando...\n")           
-            logoff(driver, wait)
-            login_copasa_simple(driver, wait, cpf, password, webmail_user, webmail_password, webmail_host)
-            select_all_option(driver)
-            start_time = time.time()
-            rows = driver.find_elements(By.CSS_SELECTOR, selector)
-
-        if i >= len(rows):
-            print(f"Índice {i} maior que número de linhas disponíveis ({len(rows)}). Finalizando.")
-            break
-
-        download_success = False
-        try:
-            current_row = rows[i]
-            radio_button = current_row.find_element(By.CSS_SELECTOR, "input[type='radio']")
-            radio_button.click()
-            
-            proceed_button = wait.until(
-                EC.element_to_be_clickable((By.ID, "btnproceed"))
-            )
-            proceed_button.click()
-            
-            download_button = wait.until(
-                EC.element_to_be_clickable((By.CLASS_NAME, "fa-download"))
-            )
-            download_button.click()
-            
-            download_success = wait_for_download(download_folder=download_folder)
-            
-        except Exception as e:
-            print(f"\nFatura {i+1}/{total_rows} - Erro: fatura não encontrada ou tempo esgotado")
-
-        status = "OK" if download_success else "ERRO"
-        print(f"\n[{i+1}/{total_rows}] {status}")
-        
-        safe_rename_after_download(download_folder)
-
-        try:
-            back_to_list(driver=driver, wait=wait)
-        except Exception:
-            pass
-        
-        i += 1
-    
-    print("Downloads concluídos! Gerando relatórios...")
-    safe_rename_after_download(download_folder)
-    
-    try:
-        txt_folder = os.path.join(download_folder, "contas_txt")
-        relatorio_folder = os.path.join(download_folder, "relatorios")
-        generate_reports_from_folder(download_folder, txt_folder, relatorio_folder)
-        print("Relatórios gerados com sucesso!")
-    except Exception as e:
-        print(f"Erro ao gerar relatórios: {e}")
-
-
 def _normalize_matricula(s: str) -> str:
     return "".join(ch for ch in str(s).strip() if ch.isdigit())
 
@@ -120,8 +46,6 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
     
     pending = {_normalize_matricula(m) for m in (matriculas_filtradas or []) if str(m).strip()}
     processed = set()
-    failed_attempts = {}
-    removed_matriculas = set()
 
     if not pending:
         print("Nenhuma matrícula pendente para processar (todas já foram baixadas ou lista vazia).")
@@ -155,27 +79,16 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
                 linha_raw = row.find_element(By.CSS_SELECTOR, "span.IdentifierNumber").text
                 linha = _normalize_matricula(linha_raw)
 
-                if linha not in pending or linha in removed_matriculas:
+                if linha not in pending:
                     continue
 
                 if db.matricula_ja_baixada_hoje(linha):
                     print(f"Matrícula {linha} - JÁ BAIXADA HOJE - REMOVENDO DA LISTA")
                     pending.discard(linha)
-                    removed_matriculas.add(linha)
                     matricula_processada_nesta_iteracao = True
                     continue
 
                 found_this_pass.add(linha)
-                
-                failed_attempts[linha] = failed_attempts.get(linha, 0)
-                
-                if failed_attempts[linha] >= 3:
-                    print(f"Matrícula {linha} - REMOVIDA PERMANENTEMENTE\n")
-                    db.registrar_tentativa(linha, False, "Máximo de tentativas excedido")
-                    pending.discard(linha)
-                    removed_matriculas.add(linha)
-                    matricula_processada_nesta_iteracao = True
-                    break
 
                 radio_button = row.find_element(By.CSS_SELECTOR, "input[type='radio']")
                 radio_button.click()
@@ -191,7 +104,6 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
                         print(f"Matrícula {linha} - SEM DÉBITOS - REMOVIDA")
                         db.registrar_tentativa(linha, False, "Sem débitos")
                         pending.discard(linha)
-                        removed_matriculas.add(linha)
                         back_to_list(driver=driver, wait=wait)
                         matricula_processada_nesta_iteracao = True
                         break
@@ -200,24 +112,18 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
 
                 download_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "fa-download")))
                 download_button.click()
-                ok = wait_for_download(download_folder=download_folder)
+                download_success = wait_for_download(download_folder=download_folder)
 
-                if ok:
+                if download_success:
                     print(f"Matrícula {linha} - BAIXADA\n")
                     db.registrar_tentativa(linha, True)
                     processed.add(linha)
                     pending.discard(linha)
-                    failed_attempts.pop(linha, None)
                     safe_rename_after_download(download_folder)
-                    matricula_processada_nesta_iteracao = True
                 else:
-                    failed_attempts[linha] += 1
-                    print(f"Matrícula {linha} - FALHA ({failed_attempts[linha]}/3)\n")
-                    if failed_attempts[linha] >= 3:
-                        print(f"Matrícula {linha} - REMOVIDA PERMANENTEMENTE\n")
-                        db.registrar_tentativa(linha, False, "Falha no download")
-                        pending.discard(linha)
-                        removed_matriculas.add(linha)
+                    print(f"Matrícula {linha} - ERRO NO DOWNLOAD\n")
+                    db.registrar_tentativa(linha, False, "Falha no download")
+                    pending.discard(linha)
                     safe_rename_after_download(download_folder)
 
                 back_status = back_to_list(driver=driver, wait=wait)
@@ -226,21 +132,15 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
                     print(f"Matrícula {linha} - SEM FATURA - REMOVIDA\n")
                     db.registrar_tentativa(linha, False, "Sem fatura disponível")
                     pending.discard(linha)
-                    removed_matriculas.add(linha)
                 
                 matricula_processada_nesta_iteracao = True
                 break
 
             except (StaleElementReferenceException, NoSuchElementException, TimeoutException) as e:
                 if 'linha' in locals():
-                    failed_attempts[linha] = failed_attempts.get(linha, 0) + 1
-                    print(f"Matrícula {linha} - ERRO ({failed_attempts[linha]}/3): fatura não encontrada ou tempo esgotado")
-                    if failed_attempts[linha] >= 3:
-                        print(f"Matrícula {linha} - REMOVIDA PERMANENTEMENTE\n")
-                        db.registrar_tentativa(linha, False, str(e))
-                        pending.discard(linha)
-                        removed_matriculas.add(linha)
-                safe_rename_after_download(download_folder)
+                    print(f"Matrícula {linha} - ERRO: fatura não encontrada ou tempo esgotado")
+                    db.registrar_tentativa(linha, False, str(e))
+                    pending.discard(linha)
                 try:
                     back_to_list(driver=driver, wait=wait)
                 except Exception:
@@ -249,21 +149,13 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
                 break
             except Exception as e:
                 print(f"Erro inesperado: {str(e)[:50]}...")
-                safe_rename_after_download(download_folder)
                 matricula_processada_nesta_iteracao = True
                 break
 
-        for matricula, attempts in list(failed_attempts.items()):
-            if attempts >= 3 and matricula in pending:
-                print(f"FORÇAR REMOÇÃO: Matrícula {matricula}")
-                db.registrar_tentativa(matricula, False, "Máximo de tentativas excedido")
-                pending.discard(matricula)
-                removed_matriculas.add(matricula)
-
         if not found_this_pass and not matricula_processada_nesta_iteracao:
-            remaining_pending = pending - removed_matriculas
+            remaining_pending = pending.copy()
             if not remaining_pending:
-                print("Todas as matrículas foram processadas ou removidas")
+                print("Todas as matrículas foram processadas")
                 break
             print(f"Nenhuma matrícula pendente encontrada nesta varredura")
 
@@ -278,7 +170,7 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
         print("Todas as matrículas foram processadas!")
 
     print("Processamento final...")
-    safe_rename_after_download(download_folder)
+    rename_all_pdfs_safe_mode(download_folder)
     
     try:
         txt_folder = os.path.join(download_folder, "contas_txt")

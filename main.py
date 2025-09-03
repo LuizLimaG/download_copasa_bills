@@ -4,7 +4,7 @@ from selenium import webdriver
 from login import login_copasa
 from select_all import select_all_option
 from selenium.webdriver.support.ui import WebDriverWait
-from download_bills import download_all_bills, download_bills_by_matricula
+from download_bills import download_bills_by_matricula
 from selenium.common.exceptions import TimeoutException as SeleniumTimeoutException
 
 MAX_TENTATIVAS = 3
@@ -41,11 +41,12 @@ def create_driver():
         options.set_preference(key, value)
 
     options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
     driver.maximize_window()
     return driver
 
-def executar_main_interno(driver, wait, cpf, password, webmail_user, webmail_password, webmail_host, matriculas, donwload_dir, callbacks=None):
+def execute_main(driver, wait, cpf, password, webmail_user, webmail_password, webmail_host, matriculas, donwload_dir, callbacks=None):
     try:
         login_copasa(
             driver=driver,
@@ -71,15 +72,7 @@ def executar_main_interno(driver, wait, cpf, password, webmail_user, webmail_pas
                 webmail_host=webmail_host
             )
         else:
-            download_all_bills(
-                driver=driver,
-                download_folder=donwload_dir,
-                cpf=cpf,
-                password=password,
-                webmail_user=webmail_user,
-                webmail_password=webmail_password,
-                webmail_host=webmail_host
-            )
+            print('Nenhuma matrícula fornecida.')
         
         return True
         
@@ -112,7 +105,7 @@ def main(cpf, password, webmail_user, webmail_password, webmail_host, matriculas
             driver = create_driver()
             wait = WebDriverWait(driver, 60)
             
-            executar_main_interno(
+            execute_main(
                 driver, wait, cpf, password, webmail_user, 
                 webmail_password, webmail_host, matriculas, donwload_dir, callbacks
             )

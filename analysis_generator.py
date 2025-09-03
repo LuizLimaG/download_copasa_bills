@@ -38,35 +38,35 @@ def generate_report(pdf_path, txt_dir, report_dir):
     RELATÓRIO DE ANÁLISE HIDRICA - COPASA
 
     IDENTIFICAÇÃO:
-    • Condomínio/Edificação: 
-    • Endereço: 
-    • Código do Cliente: 
+    • Condomínio/Edificação:  : Utilize as regras de execução abaixo
+    • Endereço:  : Utilize as regras de execução abaixo
+    • Código do Cliente:  : Utilize as regras de execução abaixo
 
     FATURA ATUAL:
-    • Data de Emissão: 
-    • Período de Referência: 
-    • Data de Vencimento: 
+    • Data de Emissão:  : Utilize as regras de execução abaixo
+    • Período de Referência:  : Utilize as regras de execução abaixo
+    • Data de Vencimento:  : Utilize as regras de execução abaixo
 
     CONSUMO:
-    • Leitura Anterior:
-    • Leitura Atual: 
-    • Consumo Total: 
-    • Consumo Médio Diário: 
+    • Leitura Anterior: : Utilize as regras de execução abaixo
+    • Leitura Atual:  : Utilize as regras de execução abaixo
+    • Consumo Total:  : Utilize as regras de execução abaixo
+    • Consumo Médio Diário:  : Utilize as regras de execução abaixo
 
     VALORES:
-    • Valor do Consumo: 
-    • Taxa de Esgoto: 
-    • TOTAL: 
+    • Valor do Consumo:  : Utilize as regras de execução abaixo
+    • Taxa de Esgoto:  : Utilize as regras de execução abaixo
+    • TOTAL:  : Utilize as regras de execução abaixo
 
     OBSERVAÇÕES:
-    • [Análise do consumo e alertas se necessário]
-    • [Observações presentes na fatura]
+    • [Análise do consumo e alertas se necessário] : Utilize as regras de execução abaixo
+    • [Apenas as observações importantes presentes na fatura] : Utilize as regras de execução abaixo
 
 
     Regras de extração (seguir à risca):
 
     Condomínio/Edificação: texto após “COND”/“ED” ou nome do imóvel na área “TOTAL A PAGAR”.
-    Endereço: concatenar logradouro + número + bairro + cidade/UF + CEP quando presentes (ex.: “R DOUTOR PLINIO MORAES, 464 – CIDADE NOVA, BELO HORIZONTE/MG – CEP 31170-170”).
+    Endereço: concatenar logradouro + número + bairro + cidade/UF + CEP quando presentes (ex.: “RUA DOUTOR PLINIO MORAES, 464 – CIDADE NOVA, BELO HORIZONTE/MG – CEP 31170-170”).
     Código do Cliente: usar MATRÍCULA exatamente como aparece (ex.: “0 000 105 383 3”).
     Período de Referência / Emissão: na área “REFERÊNCIA DA CONTA”, mapear mês/ano, “Quando foi emitida?”, e “Data da apresentação”. Use “Data de Emissão” = Quando foi emitida.
     Vencimento: data na linha/coluna “VENCIMENTO”.
