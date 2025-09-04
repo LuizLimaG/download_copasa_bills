@@ -16,7 +16,6 @@ from database_manager import DatabaseManager
 from change_archive_name import rename_all_pdfs_safe_mode
 from analysis_generator import generate_reports_from_folder
 
-# ✅ Configuração de Logging Profissional
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -38,7 +37,6 @@ class COPASASystemChecker:
         """
         for tentativa in range(max_tentativas):
             try:
-                # 1. ✅ CORREÇÃO: Verifica modais de erro REAIS (visíveis e com conteúdo de erro)
                 modais_erro_reais = COPASASystemChecker._detectar_modais_erro_reais(driver)
                 
                 if modais_erro_reais:
@@ -47,7 +45,6 @@ class COPASASystemChecker:
                     time.sleep(3)
                     continue
                 
-                # 2. Verifica se a tabela principal existe
                 try:
                     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#tbIdentificador")), 10)
                 except TimeoutException:
@@ -59,11 +56,9 @@ class COPASASystemChecker:
                     else:
                         return False
                 
-                # 3. Verifica se página não está em loading infinito
                 loadings_ativos = driver.find_elements(By.CSS_SELECTOR, 
                     ".loading:not([style*='display: none']), .spinner:not([style*='display: none']), .fa-spinner")
                 
-                # Filtra apenas loadings visíveis
                 loadings_visiveis = [l for l in loadings_ativos if l.is_displayed()]
                 
                 if loadings_visiveis:
@@ -71,7 +66,6 @@ class COPASASystemChecker:
                     time.sleep(5)
                     continue
                 
-                # 4. Verifica se há elementos básicos da interface
                 elementos_interface = driver.find_elements(By.CSS_SELECTOR, 
                     "#btnproceed, .IdentifierNumber")
                 
@@ -81,7 +75,6 @@ class COPASASystemChecker:
                     time.sleep(5)
                     continue
                 
-                # 5. ✅ NOVA VERIFICAÇÃO: Verifica se há mensagens de erro do sistema
                 mensagens_erro = driver.find_elements(By.CSS_SELECTOR, 
                     ".alert-danger, .error-message, .validation-summary-errors")
                 
@@ -122,7 +115,6 @@ class COPASASystemChecker:
         modais_erro = []
         
         try:
-            # Busca modais que estejam realmente visíveis e com classes/conteúdo de erro
             possíveis_modais = driver.find_elements(By.CSS_SELECTOR, 
                 ".modal.show, .modal[style*='display: block'], .modal.in")
             
@@ -130,24 +122,19 @@ class COPASASystemChecker:
                 if not modal.is_displayed():
                     continue
                 
-                # Verifica se o modal contém indicadores de erro
                 indicadores_erro = modal.find_elements(By.CSS_SELECTOR,
                     ".alert-danger, .error, .modal-header .text-danger, .btn-danger")
                 
-                # Verifica texto do modal por palavras-chave de erro
                 texto_modal = modal.text.upper() if modal.text else ""
                 palavras_erro = ["ERRO", "ERROR", "FALHA", "PROBLEMA", "INVALID", "TIMEOUT", "EXCEPTION"]
                 
                 if indicadores_erro or any(palavra in texto_modal for palavra in palavras_erro):
-                    # Este é realmente um modal de erro
                     modais_erro.append(modal)
                     logger.debug(f"Modal de erro detectado: {texto_modal[:100]}...")
             
-            # ⚠️ IMPORTANTE: Ignora modais estruturais da página (como includeModalDialog)
             modais_estruturais = driver.find_elements(By.CSS_SELECTOR, 
                 "#includeModalDialog, #includeModalDialogWaitWindow, div[id*='include']")
             
-            # Remove modais estruturais da lista de erros
             modais_erro = [m for m in modais_erro if m not in modais_estruturais]
             
         except Exception as e:
@@ -160,7 +147,6 @@ class COPASASystemChecker:
         """Tenta fechar modais de erro"""
         for modal in modais_erro:
             try:
-                # Tenta diferentes formas de fechar o modal
                 botoes_fechar = modal.find_elements(By.CSS_SELECTOR, 
                     ".close, .btn-close, [data-dismiss='modal'], .fa-times, .btn-default")
                 
@@ -171,7 +157,6 @@ class COPASASystemChecker:
                         logger.info("Modal de erro fechado")
                         break
                         
-                # Se não conseguir fechar, tenta ESC
                 else:
                     modal.send_keys(Keys.ESCAPE)
                     time.sleep(1)
@@ -228,7 +213,6 @@ def wait_for_download(download_folder: str, timeout: int = 30) -> bool:
             new_files = current_files - initial_files
 
             if new_files:
-                # Verifica se há arquivos temporários
                 temp_files = [f for f in new_files if f.endswith(('.crdownload', '.part', '.tmp'))]
                 
                 if not temp_files:
@@ -296,27 +280,22 @@ def processar_matricula_individual(driver, wait, row, db: DatabaseManager,
     Returns: (status, matricula, motivo)
     """
     try:
-        # Extrai matrícula
         linha_raw = row.find_element(By.CSS_SELECTOR, "span.IdentifierNumber").text
         linha = _normalize_matricula(linha_raw)
         
         logger.info(f"Processando matrícula: {linha}")
         
-        # Verifica se já foi baixada hoje
         if db.matricula_ja_baixada_hoje(linha):
             logger.info(f"Matrícula {linha} - JÁ BAIXADA HOJE")
             return "ja_baixada", linha, "Já baixada hoje"
         
-        # Clica no radio button
         radio_button = row.find_element(By.CSS_SELECTOR, "input[type='radio']")
         radio_button.click()
         
-        # Clica em proceed
         proceed_button = safe_element_interaction(driver, wait, (By.ID, "btnproceed"))
         if not proceed_button:
             return "erro", linha, "Falha ao clicar em proceed"
         
-        # Verifica se há débitos
         try:
             no_debt_element = WebDriverWait(driver, 3).until(
                 EC.presence_of_element_located((By.ID, 'OpenInvoices'))
@@ -326,14 +305,12 @@ def processar_matricula_individual(driver, wait, row, db: DatabaseManager,
                 db.registrar_tentativa(linha, False, "Sem débitos")
                 return "sem_debitos", linha, "Sem débitos"
         except TimeoutException:
-            pass  # Continua processamento normal
+            pass
         
-        # Tenta fazer download
         download_button = safe_element_interaction(driver, wait, (By.CLASS_NAME, "fa-download"))
         if not download_button:
             return "erro", linha, "Botão de download não encontrado"
         
-        # Aguarda download
         download_success = wait_for_download(download_folder)
         
         if download_success:
@@ -357,8 +334,7 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
     """
     Função principal refatorada para download de faturas
     """
-    # ✅ Configuração inicial com fallback seguro
-    RELAUNCH_TIME = int(os.getenv("RELAUNCH_TIME", "780"))  # Default: 30 minutos
+    RELAUNCH_TIME = int(os.getenv("RELAUNCH_TIME", "780"))
     max_passes = int(os.getenv("MAX_PASSES", "300"))
     
     wait = WebDriverWait(driver, timeout)
@@ -367,7 +343,6 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
     monitor = DownloadMonitor()
     system_checker = COPASASystemChecker()
 
-    # Filtra matrículas
     matriculas_filtradas = db.filtrar_matriculas_nao_baixadas(matriculas, verificar_hoje_apenas=True)
     pending = {_normalize_matricula(m) for m in (matriculas_filtradas or []) if str(m).strip()}
 
@@ -385,13 +360,11 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
         passes += 1
         logger.debug(f"Varredura {passes}/{max_passes} - Pendentes: {len(pending)}")
 
-        # ✅ Verificação de saúde do sistema (CORRIGIDA)
         if not system_checker.verificar_estado_sistema(driver, wait):
             logger.warning("Sistema COPASA instável - aguardando recuperação...")
             time.sleep(30)
             continue
 
-        # ✅ Reautenticação preventiva (seu design original)
         if time.time() - start_time >= RELAUNCH_TIME:
             logger.info("🔄 Reautenticando preventivamente...")
             try:
@@ -404,14 +377,12 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
                 logger.error(f"Erro na reautenticação: {e}")
                 break
 
-        # ✅ Detecção de loop vazio
         if monitor.deve_pausar():
             logger.warning("🔄 Muitas passagens vazias - pausando para estabilização...")
             time.sleep(60)
             monitor.passes_sem_resultado = 0
             continue
 
-        # Busca elementos
         try:
             rows = driver.find_elements(By.CSS_SELECTOR, selector)
         except Exception as e:
@@ -426,7 +397,6 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
             time.sleep(3)
             continue
 
-        # Processa cada linha
         matricula_processada_nesta_pass = False
         
         for row in rows:
@@ -437,18 +407,15 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
                 if linha not in pending:
                     continue
 
-                # Processa a matrícula
                 status, matricula_processada, motivo = processar_matricula_individual(
                     driver, wait, row, db, download_folder
                 )
                 
-                # Remove da lista pendente baseado no status
                 if status in ["ja_baixada", "sem_debitos", "sucesso", "erro_download"]:
                     pending.discard(linha)
                     monitor.registrar_processamento()
                     matricula_processada_nesta_pass = True
                 
-                # Volta para a lista
                 back_status = back_to_list(driver, wait)
                 
                 if back_status == "no_invoice":
@@ -456,7 +423,6 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
                     db.registrar_tentativa(linha, False, "Sem fatura disponível")
                     pending.discard(linha)
                 
-                # Sai do loop interno após processar uma matrícula
                 break
 
             except (StaleElementReferenceException, NoSuchElementException) as e:
@@ -474,22 +440,18 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
                 matricula_processada_nesta_pass = True
                 break
 
-        # Monitora progresso
         if not matricula_processada_nesta_pass:
             monitor.registrar_pass_vazio()
         
         monitor.log_estatisticas(passes, len(pending))
 
-        # Pequena pausa entre varreduras
         time.sleep(1)
 
-    # ✅ Relatório final
     if pending:
         logger.warning(f"⚠️ Matrículas não processadas após {passes} varreduras: {sorted(pending)}")
     else:
         logger.info("🎉 Todas as matrículas foram processadas com sucesso!")
 
-    # ✅ Processamento final
     logger.info("🔧 Executando processamento final...")
     
     try:
