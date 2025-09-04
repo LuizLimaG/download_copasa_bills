@@ -496,8 +496,8 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
         rename_all_pdfs_safe_mode(download_folder)
         logger.info("✅ Arquivos renomeados")
         
-        txt_folder = os.path.join(download_folder, "contas_txt")
-        relatorio_folder = os.path.join(download_folder, "relatorios")
+        txt_folder = os.path.join(download_folder, "IGNORAR")
+        relatorio_folder = os.path.join(download_folder, "Relatorios")
         generate_reports_from_folder(download_folder, txt_folder, relatorio_folder)
         logger.info("✅ Relatórios gerados com sucesso!")
         

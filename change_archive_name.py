@@ -124,7 +124,7 @@ def rename_all_pdfs_safe_mode(pasta):
     arquivos_processados = []
     arquivos_movidos = 0
     
-    pasta_duplicatas = os.path.join(pasta, "duplicatas")
+    pasta_duplicatas = os.path.join(pasta, "Duplicatas")
     os.makedirs(pasta_duplicatas, exist_ok=True)
     
     pdfs_para_processar = []
@@ -163,7 +163,7 @@ def rename_all_pdfs_safe_mode(pasta):
                     contador += 1
                 
                 shutil.move(caminho, caminho_duplicata)
-                print(f"[DUPLICATA MOVIDA] {nome_atual} -> duplicatas/{os.path.basename(caminho_duplicata)} (nome seria: {novo_nome})\n")
+                print(f"[DUPLICATA MOVIDA] {nome_atual} -> Duplicatas/{os.path.basename(caminho_duplicata)} (nome seria: {novo_nome})\n")
                 arquivos_movidos += 1
             else:
                 novo_caminho = os.path.join(diretorio, novo_nome)
