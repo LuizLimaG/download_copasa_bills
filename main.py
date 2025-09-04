@@ -41,7 +41,7 @@ def create_driver():
         options.set_preference(key, value)
 
     options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--headless")
+    # options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
     driver.maximize_window()
     return driver
@@ -103,7 +103,7 @@ def main(cpf, password, webmail_user, webmail_password, webmail_host, matriculas
                     pass
             
             driver = create_driver()
-            wait = WebDriverWait(driver, 60)
+            wait = WebDriverWait(driver, 30)
             
             execute_main(
                 driver, wait, cpf, password, webmail_user, 

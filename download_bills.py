@@ -74,7 +74,11 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
         found_this_pass = set()
         matricula_processada_nesta_iteracao = False
 
-        for row in rows:
+        if len(rows) <= 0:
+            driver.refresh()
+            continue
+        
+        for row in rows:    
             try:
                 linha_raw = row.find_element(By.CSS_SELECTOR, "span.IdentifierNumber").text
                 linha = _normalize_matricula(linha_raw)
@@ -138,7 +142,7 @@ def download_bills_by_matricula(driver, download_folder, matriculas, cpf, passwo
 
             except (StaleElementReferenceException, NoSuchElementException, TimeoutException) as e:
                 if 'linha' in locals():
-                    print(f"Matrícula {linha} - ERRO: fatura não encontrada ou tempo esgotado")
+                    print(f"Matrícula {linha} - ERRO: fatura não encontrada ou tempo esgotado\n")
                     db.registrar_tentativa(linha, False, str(e))
                     pending.discard(linha)
                 try:
