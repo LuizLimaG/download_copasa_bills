@@ -41,7 +41,7 @@ def create_driver():
         options.set_preference(key, value)
 
     options.add_argument("--disable-blink-features=AutomationControlled")
-    # options.add_argument("--headless")
+    # options.add_argument("--headless")  # Descomente para executar sem interface gráfica
     driver = webdriver.Firefox(options=options)
     driver.maximize_window()
     return driver

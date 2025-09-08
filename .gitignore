@@ -6,3 +6,4 @@ __pycache__
 db-sql
 modal_detector.py
 download_bills.log
+runner.log

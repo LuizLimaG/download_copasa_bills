@@ -1,7 +1,8 @@
 import os
 import time
 import logging
-from typing import Set, Optional, Tuple
+from enum import Enum
+from typing import Set, Optional, Tuple, Dict
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -26,323 +27,389 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class COPASASystemChecker:
-    """Classe para verificar saúde do sistema COPASA"""
-    
-    @staticmethod
-    def verificar_estado_sistema(driver, wait, max_tentativas: int = 3) -> bool:
-        """
-        Verifica se o sistema COPASA está funcionando corretamente
-        Returns: True se sistema OK, False se instável
-        """
-        for tentativa in range(max_tentativas):
-            try:
-                modais_erro_reais = COPASASystemChecker._detectar_modais_erro_reais(driver)
-                
-                if modais_erro_reais:
-                    logger.warning(f"Modal de erro REAL detectado - Tentativa {tentativa + 1}")
-                    COPASASystemChecker._fechar_modais(modais_erro_reais)
-                    time.sleep(3)
-                    continue
-                
-                try:
-                    wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#tbIdentificador")), 10)
-                except TimeoutException:
-                    logger.warning("Tabela principal não encontrada")
-                    if tentativa < max_tentativas - 1:
-                        driver.refresh()
-                        time.sleep(5)
-                        continue
-                    else:
-                        return False
-                
-                loadings_ativos = driver.find_elements(By.CSS_SELECTOR, 
-                    ".loading:not([style*='display: none']), .spinner:not([style*='display: none']), .fa-spinner")
-                
-                loadings_visiveis = [l for l in loadings_ativos if l.is_displayed()]
-                
-                if loadings_visiveis:
-                    logger.warning("Sistema em carregamento - aguardando...")
-                    time.sleep(5)
-                    continue
-                
-                elementos_interface = driver.find_elements(By.CSS_SELECTOR, 
-                    "#btnproceed, .IdentifierNumber")
-                
-                if len(elementos_interface) == 0:
-                    logger.warning("Interface não carregada completamente")
-                    driver.refresh()
-                    time.sleep(5)
-                    continue
-                
-                mensagens_erro = driver.find_elements(By.CSS_SELECTOR, 
-                    ".alert-danger, .error-message, .validation-summary-errors")
-                
-                erros_visiveis = [erro for erro in mensagens_erro if erro.is_displayed() and erro.text.strip()]
-                
-                if erros_visiveis:
-                    logger.warning(f"Mensagens de erro do sistema detectadas: {[e.text for e in erros_visiveis]}")
-                    if tentativa < max_tentativas - 1:
-                        driver.refresh()
-                        time.sleep(5)
-                        continue
-                
-                logger.info("✅ Sistema COPASA funcionando normalmente")
-                return True
-                
-            except TimeoutException:
-                logger.warning(f"Timeout ao verificar sistema - Tentativa {tentativa + 1}")
-                if tentativa < max_tentativas - 1:
-                    driver.refresh()
-                    time.sleep(5)
-                continue
-                    
-            except Exception as e:
-                logger.error(f"Erro ao verificar estado do sistema: {str(e)}")
-                if tentativa < max_tentativas - 1:
-                    driver.refresh()
-                    time.sleep(5)
-                continue
+class SystemState(Enum):
+    HEALTHY = "healthy"
+    SLOW = "slow" 
+    MODAL_ERROR = "modal_error"
+    SESSION_EXPIRED = "session_expired"
+    NO_RESPONSE = "no_response"
+    CRITICAL_ERROR = "critical_error"
+
+class RecoveryAction(Enum):
+    WAIT = "wait"
+    REFRESH = "refresh"
+    CLOSE_MODAL = "close_modal" 
+    RELOGIN = "relogin"
+    SKIP_MATRICULA = "skip_matricula"
+    ABORT = "abort"
+
+class COPASASystemMonitor:
+    def __init__(self, max_wait_time: int = 3, max_recovery_attempts: int = 2):
+        self.max_wait_time = max_wait_time
+        self.max_recovery_attempts = max_recovery_attempts
+        self.recovery_stats = {
+            RecoveryAction.WAIT: 0,
+            RecoveryAction.REFRESH: 0,
+            RecoveryAction.CLOSE_MODAL: 0,
+            RecoveryAction.RELOGIN: 0,
+            RecoveryAction.SKIP_MATRICULA: 0
+        }
+        self.consecutive_problems = 0
+        self.last_problem_time = 0
         
-        logger.error("🚫 Sistema COPASA instável após múltiplas tentativas")
-        return False
-    
-    @staticmethod
-    def _detectar_modais_erro_reais(driver) -> list:
-        """
-        ✅ NOVA FUNÇÃO: Detecta apenas modais de erro REAIS
-        """
-        modais_erro = []
-        
+    def detect_system_state(self, driver) -> SystemState:
         try:
-            possíveis_modais = driver.find_elements(By.CSS_SELECTOR, 
-                ".modal.show, .modal[style*='display: block'], .modal.in")
+            modal_state = self._quick_modal_check(driver)
+            if modal_state != SystemState.HEALTHY:
+                return modal_state
             
-            for modal in possíveis_modais:
-                if not modal.is_displayed():
-                    continue
+            essential_elements = self._check_essential_elements(driver)
+            if not essential_elements:
+                return SystemState.NO_RESPONSE
                 
-                indicadores_erro = modal.find_elements(By.CSS_SELECTOR,
-                    ".alert-danger, .error, .modal-header .text-danger, .btn-danger")
+            if self._detect_slowness(driver):
+                return SystemState.SLOW
                 
-                texto_modal = modal.text.upper() if modal.text else ""
-                palavras_erro = ["ERRO", "ERROR", "FALHA", "PROBLEMA", "INVALID", "TIMEOUT", "EXCEPTION"]
-                
-                if indicadores_erro or any(palavra in texto_modal for palavra in palavras_erro):
-                    modais_erro.append(modal)
-                    logger.debug(f"Modal de erro detectado: {texto_modal[:100]}...")
-            
-            modais_estruturais = driver.find_elements(By.CSS_SELECTOR, 
-                "#includeModalDialog, #includeModalDialogWaitWindow, div[id*='include']")
-            
-            modais_erro = [m for m in modais_erro if m not in modais_estruturais]
+            self.consecutive_problems = 0
+            return SystemState.HEALTHY
             
         except Exception as e:
-            logger.debug(f"Erro ao detectar modais: {e}")
-        
-        return modais_erro
+            logger.error(f"Erro na detecção de estado: {e}")
+            return SystemState.CRITICAL_ERROR
     
-    @staticmethod
-    def _fechar_modais(modais_erro):
-        """Tenta fechar modais de erro"""
-        for modal in modais_erro:
-            try:
-                botoes_fechar = modal.find_elements(By.CSS_SELECTOR, 
-                    ".close, .btn-close, [data-dismiss='modal'], .fa-times, .btn-default")
-                
-                for botao in botoes_fechar:
-                    if botao.is_displayed() and botao.is_enabled():
-                        botao.click()
-                        time.sleep(1)
-                        logger.info("Modal de erro fechado")
-                        break
-                        
-                else:
-                    modal.send_keys(Keys.ESCAPE)
-                    time.sleep(1)
+    def _quick_modal_check(self, driver) -> SystemState:
+        try:
+            modals = driver.find_elements(By.CSS_SELECTOR, 
+                ".modal.show, .modal[style*='display: block'], .alert-danger")
+            
+            for modal in modals[:3]:
+                if not modal.is_displayed():
+                    continue
                     
-            except Exception as e:
-                logger.debug(f"Não foi possível fechar modal: {e}")
+                modal_text = modal.text.upper()
+                error_keywords = ["ERRO", "ERROR", "FALHA", "TIMEOUT", "SESSÃO", "SESSION"]
+                if any(keyword in modal_text for keyword in error_keywords):
+                    if "SESSÃO" in modal_text or "SESSION" in modal_text:
+                        return SystemState.SESSION_EXPIRED
+                    return SystemState.MODAL_ERROR
+                    
+        except Exception:
+            pass
+        
+        return SystemState.HEALTHY
+    
+    def _check_essential_elements(self, driver) -> bool:
+        try:
+            essential_selectors = [
+                "#tbIdentificador",
+                "#btnproceed",       
+                ".IdentifierNumber" 
+            ]
+            
+            for selector in essential_selectors:
+                try:
+                    elements = driver.find_elements(By.CSS_SELECTOR, selector)
+                    if elements and elements[0].is_displayed():
+                        return True
+                except:
+                    continue
+                    
+            return False
+        except:
+            return False
+    
+    def _detect_slowness(self, driver) -> bool:
+        try:
+            loading_selectors = [
+                ".fa-spinner",
+                ".loading:not([style*='display: none'])",
+                ".spinner-border",
+                "[class*='loading']:not([style*='display: none'])"
+            ]
+            
+            for selector in loading_selectors:
+                loadings = driver.find_elements(By.CSS_SELECTOR, selector)
+                if any(l.is_displayed() for l in loadings):
+                    return True
+                    
+        except Exception:
+            pass
+        return False
+    
+    def get_recovery_action(self, state: SystemState, attempt: int) -> RecoveryAction:
+        current_time = time.time()
+        
+        if self.consecutive_problems > 3:
+            if current_time - self.last_problem_time < 30:
+                return RecoveryAction.RELOGIN
+        
+        recovery_map = {
+            SystemState.MODAL_ERROR: [RecoveryAction.CLOSE_MODAL, RecoveryAction.REFRESH],
+            SystemState.SESSION_EXPIRED: [RecoveryAction.RELOGIN],
+            SystemState.SLOW: [RecoveryAction.WAIT, RecoveryAction.REFRESH],
+            SystemState.NO_RESPONSE: [RecoveryAction.REFRESH, RecoveryAction.RELOGIN],
+            SystemState.CRITICAL_ERROR: [RecoveryAction.REFRESH, RecoveryAction.ABORT]
+        }
+        
+        actions = recovery_map.get(state, [RecoveryAction.REFRESH])
+        
+        if attempt < len(actions):
+            return actions[attempt]
+        else:
+            return RecoveryAction.SKIP_MATRICULA if attempt < self.max_recovery_attempts else RecoveryAction.ABORT
+    
+    def execute_recovery(self, driver, wait, action: RecoveryAction) -> bool:
+        self.consecutive_problems += 1
+        self.last_problem_time = time.time()
+        self.recovery_stats[action] += 1
+        
+        try:
+            if action == RecoveryAction.CLOSE_MODAL:
+                return self._close_modals_fast(driver)
+            
+            elif action == RecoveryAction.REFRESH:
+                logger.info("🔄 Refresh da página...")
+                driver.refresh()
+                time.sleep(2)
+                return True
+            
+            elif action == RecoveryAction.WAIT:
+                logger.info("⏳ Aguardando sistema estabilizar...")
+                time.sleep(3)
+                return True
+            
+            elif action == RecoveryAction.RELOGIN:
+                logger.info("🔐 Relogin necessário...")
+                return False
+            
+            elif action == RecoveryAction.SKIP_MATRICULA:
+                logger.warning("⏭️ Pulando matrícula atual...")
+                return False
+            
+            elif action == RecoveryAction.ABORT:
+                logger.error("🛑 Abortando execução...")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Erro na recuperação {action}: {e}")
+            return False
+            
+        return True
+    
+    def _close_modals_fast(self, driver) -> bool:
+        try:
+            close_selectors = [
+                ".modal.show .close",
+                ".modal.show .btn-close", 
+                ".modal.show [data-dismiss='modal']",
+                ".alert-danger .close"
+            ]
+            
+            closed_any = False
+            for selector in close_selectors:
+                try:
+                    buttons = driver.find_elements(By.CSS_SELECTOR, selector)
+                    for btn in buttons[:2]:
+                        if btn.is_displayed() and btn.is_enabled():
+                            btn.click()
+                            closed_any = True
+                            time.sleep(0.5)
+                            break
+                except:
+                    continue
+            
+            if not closed_any:
+                driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
+                time.sleep(0.5)
+                closed_any = True
+            
+            logger.info(f"🔐 Modais fechados: {closed_any}")
+            return closed_any
+            
+        except Exception as e:
+            logger.debug(f"Erro ao fechar modais: {e}")
+            return False
+    
+    def log_stats(self):
+        if sum(self.recovery_stats.values()) > 0:
+            logger.info(f"📊 Estatísticas de recuperação: {dict(self.recovery_stats)}")
 
 class DownloadMonitor:
-    """Monitor inteligente para downloads e loops vazios"""
-    
     def __init__(self):
         self.passes_sem_resultado = 0
         self.total_processadas = 0
         self.inicio_execucao = time.time()
         
     def registrar_pass_vazio(self):
-        """Registra uma passagem sem resultados"""
         self.passes_sem_resultado += 1
         
     def registrar_processamento(self):
-        """Registra que uma matrícula foi processada"""
         self.passes_sem_resultado = 0
         self.total_processadas += 1
         
-    def deve_pausar(self, limite_passes_vazios: int = 5) -> bool:
-        """Verifica se deve pausar por muitos passes vazios"""
+    def deve_pausar(self, limite_passes_vazios: int = 3) -> bool:
         return self.passes_sem_resultado >= limite_passes_vazios
         
     def log_estatisticas(self, passes_atual: int, pendentes: int):
-        """Loga estatísticas de progresso"""
-        if passes_atual % 10 == 0 and passes_atual > 0:
+        if passes_atual % 5 == 0 and passes_atual > 0:
             tempo_execucao = time.time() - self.inicio_execucao
-            eficiencia = (self.total_processadas / passes_atual) * 100
+            eficiencia = (self.total_processadas / passes_atual) * 100 if passes_atual > 0 else 0
             
-            logger.info(f"📊 Estatísticas - Pass: {passes_atual} | "
-                       f"Pendentes: {pendentes} | Processadas: {self.total_processadas} | "
-                       f"Eficiência: {eficiencia:.1f}% | Tempo: {tempo_execucao:.1f}s")
+            logger.info(f"📊 Pass: {passes_atual} | Pendentes: {pendentes} | "
+                       f"Processadas: {self.total_processadas} | Eficiência: {eficiencia:.1f}%")
+
+class OptimizedDownloadManager:
+    def __init__(self, download_folder: str):
+        self.download_folder = download_folder
+        self.monitor = COPASASystemMonitor()
+        self.processed_count = 0
+        self.error_count = 0
+        self.start_time = time.time()
+        
+    def process_matricula_with_recovery(self, driver, wait, row, db, matricula: str) -> Tuple[str, str]:
+        max_attempts = 2
+        
+        for attempt in range(max_attempts):
+            system_state = self.monitor.detect_system_state(driver)
             
-            if eficiencia < 10 and passes_atual > 20:
-                logger.warning("⚠️ ALERTA: Baixa eficiência - possível problema sistêmico")
-
-def wait_for_download(download_folder: str, timeout: int = 30) -> bool:
-    """
-    Aguarda conclusão de download de forma mais robusta
-    """
-    initial_files = set(os.listdir(download_folder))
-    start_time = time.time()
-    
-    logger.debug(f"Aguardando download na pasta: {download_folder}")
-
-    while time.time() - start_time < timeout:
-        try:
-            current_files = set(os.listdir(download_folder))
-            new_files = current_files - initial_files
-
-            if new_files:
-                temp_files = [f for f in new_files if f.endswith(('.crdownload', '.part', '.tmp'))]
+            if system_state != SystemState.HEALTHY:
+                logger.warning(f"Sistema não saudável: {system_state.value}")
                 
-                if not temp_files:
-                    logger.info(f"Download concluído: {list(new_files)}")
-                    return True
-                else:
-                    logger.debug(f"Download em andamento: {temp_files}")
-                    
-        except OSError as e:
-            logger.warning(f"Erro ao verificar pasta de download: {e}")
+                recovery_action = self.monitor.get_recovery_action(system_state, attempt)
+                
+                if recovery_action == RecoveryAction.RELOGIN:
+                    return "relogin_needed", "Sistema necessita relogin"
+                
+                elif recovery_action == RecoveryAction.SKIP_MATRICULA:
+                    return "skipped", "Matrícula pulada por instabilidade"
+                
+                elif recovery_action == RecoveryAction.ABORT:
+                    return "abort", "Execução abortada"
+                
+                recovery_success = self.monitor.execute_recovery(driver, wait, recovery_action)
+                
+                if not recovery_success and recovery_action not in [RecoveryAction.WAIT]:
+                    continue
+                
+                time.sleep(1)
+                system_state = self.monitor.detect_system_state(driver)
+                if system_state != SystemState.HEALTHY:
+                    continue
             
-        time.sleep(0.5)
+            try:
+                return self._process_single_matricula(driver, wait, row, db, matricula)
+            
+            except Exception as e:
+                logger.warning(f"Erro no processamento (tentativa {attempt + 1}): {e}")
+                if attempt < max_attempts - 1:
+                    time.sleep(1)
+                    continue
+                else:
+                    return "error", f"Erro após {max_attempts} tentativas: {str(e)}"
+        
+        return "failed", "Falha após todas as tentativas de recuperação"
     
-    logger.error(f"Timeout no download após {timeout}s")
-    return False
-
-def safe_rename_after_download(download_folder: str):
-    """
-    Renomeia arquivos com tratamento de erro mais robusto
-    """
-    try:
-        rename_all_pdfs_safe_mode(download_folder)
-        logger.debug("Arquivos renomeados com sucesso")
-    except Exception as e:
-        logger.error(f"Erro ao renomear arquivos: {e}")
+    def _process_single_matricula(self, driver, wait, row, db, matricula: str) -> Tuple[str, str]:
+        try:
+            radio_button = WebDriverWait(driver, 3).until(
+                lambda d: row.find_element(By.CSS_SELECTOR, "input[type='radio']")
+            )
+            radio_button.click()
+            
+            proceed_button = WebDriverWait(driver, 3).until(
+                EC.element_to_be_clickable((By.ID, "btnproceed"))
+            )
+            proceed_button.click()
+            
+            try:
+                no_debt_element = WebDriverWait(driver, 2).until(
+                    EC.presence_of_element_located((By.ID, 'OpenInvoices'))
+                )
+                if "NAO EXISTE DEBITOS" in no_debt_element.text.upper():
+                    db.registrar_tentativa(matricula, False, "Sem débitos")
+                    return "no_debt", "Sem débitos"
+            except TimeoutException:
+                pass
+            
+            try:
+                download_button = WebDriverWait(driver, 2).until(
+                    EC.element_to_be_clickable((By.CLASS_NAME, "fa-download"))
+                )
+                download_button.click()
+                
+                if self._wait_download_optimized():
+                    db.registrar_tentativa(matricula, True)
+                    self.processed_count += 1
+                    return "success", "Download realizado"
+                else:
+                    db.registrar_tentativa(matricula, False, "Falha no download")
+                    return "download_failed", "Falha no download"
+                    
+            except TimeoutException:
+                db.registrar_tentativa(matricula, False, "Sem fatura disponível")
+                return "no_invoice", "Sem fatura disponível"
+            
+        except Exception as e:
+            self.error_count += 1
+            return "error", f"Erro no processamento: {str(e)}"
+    
+    def _wait_download_optimized(self, timeout: int = 10) -> bool:
+        initial_files = set(os.listdir(self.download_folder))
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            try:
+                current_files = set(os.listdir(self.download_folder))
+                new_files = current_files - initial_files
+                
+                if new_files:
+                    temp_files = [f for f in new_files if f.endswith(('.crdownload', '.part', '.tmp'))]
+                    if not temp_files:
+                        return True
+                        
+            except OSError:
+                pass
+            time.sleep(0.3)
+        
+        return False
+    
+    def should_continue(self) -> bool:
+        runtime = time.time() - self.start_time
+        
+        if self.error_count > 8 and runtime < 180:
+            logger.error("🛑 Muitos erros em pouco tempo - parando execução")
+            return False
+        
+        if self.monitor.consecutive_problems > 4:
+            logger.error("🛑 Sistema muito instável - parando execução")
+            return False
+            
+        return True
+    
+    def log_final_stats(self):
+        runtime = time.time() - self.start_time
+        logger.info(f"📈 Estatísticas finais:")
+        logger.info(f"   Processadas: {self.processed_count}")
+        logger.info(f"   Erros: {self.error_count}")
+        logger.info(f"   Tempo: {runtime:.1f}s")
+        self.monitor.log_stats()
 
 def _normalize_matricula(s: str) -> str:
-    """Normaliza matrícula removendo caracteres não numéricos"""
     return "".join(ch for ch in str(s).strip() if ch.isdigit())
-
-def safe_element_interaction(driver, wait, locator: Tuple, action: str = "click", 
-                           max_tentativas: int = 1, timeout: int = 10):
-    """
-    Interação segura com elementos, com retry automático
-    """
-    for tentativa in range(max_tentativas):
-        try:
-            if action == "click":
-                element = WebDriverWait(driver, timeout).until(
-                    EC.element_to_be_clickable(locator)
-                )
-                element.click()
-                return element
-            elif action == "find":
-                element = WebDriverWait(driver, timeout).until(
-                    EC.presence_of_element_located(locator)
-                )
-                return element
-                
-        except (TimeoutException, StaleElementReferenceException) as e:
-            if tentativa < max_tentativas - 1:
-                logger.warning(f"Tentativa {tentativa + 1} falhou para {locator}: {e}")
-                time.sleep(2)
-                continue
-            else:
-                logger.error(f"Falha definitiva ao interagir com {locator}")
-                raise
-    
-    return None
-
-def processar_matricula_individual(driver, wait, row, db: DatabaseManager, 
-                                 download_folder: str) -> Tuple[str, str, str]:
-    """
-    Processa uma matrícula individual
-    Returns: (status, matricula, motivo)
-    """
-    try:
-        linha_raw = row.find_element(By.CSS_SELECTOR, "span.IdentifierNumber").text
-        linha = _normalize_matricula(linha_raw)
-        
-        logger.info(f"Processando matrícula: {linha}")
-        
-        if db.matricula_ja_baixada_hoje(linha):
-            logger.info(f"Matrícula {linha} - JÁ BAIXADA HOJE")
-            return "ja_baixada", linha, "Já baixada hoje"
-        
-        radio_button = row.find_element(By.CSS_SELECTOR, "input[type='radio']")
-        radio_button.click()
-        
-        proceed_button = safe_element_interaction(driver, wait, (By.ID, "btnproceed"))
-        if not proceed_button:
-            return "erro", linha, "Falha ao clicar em proceed"
-        
-        try:
-            no_debt_element = WebDriverWait(driver, 3).until(
-                EC.presence_of_element_located((By.ID, 'OpenInvoices'))
-            )
-            if "NAO EXISTE DEBITOS PARA A MATRICULA INFORMADA" in no_debt_element.text.upper():
-                logger.info(f"Matrícula {linha} - SEM DÉBITOS")
-                db.registrar_tentativa(linha, False, "Sem débitos")
-                return "sem_debitos", linha, "Sem débitos"
-        except TimeoutException:
-            pass
-        
-        download_button = safe_element_interaction(driver, wait, (By.CLASS_NAME, "fa-download"))
-        if not download_button:
-            return "erro", linha, "Botão de download não encontrado"
-        
-        download_success = wait_for_download(download_folder)
-        
-        if download_success:
-            logger.info(f"✅ Matrícula {linha} - BAIXADA COM SUCESSO")
-            db.registrar_tentativa(linha, True)
-            safe_rename_after_download(download_folder)
-            return "sucesso", linha, "Download realizado"
-        else:
-            logger.error(f"❌ Matrícula {linha} - FALHA NO DOWNLOAD")
-            db.registrar_tentativa(linha, False, "Falha no download")
-            return "erro_download", linha, "Falha no download"
-            
-    except Exception as e:
-        linha_safe = linha if 'linha' in locals() else "desconhecida"
-        logger.error(f"Erro ao processar matrícula {linha_safe}: {str(e)}")
-        return "erro", linha_safe, f"Erro: {str(e)}"
 
 def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: str, 
                               password: str, webmail_user: str, webmail_password: str, 
                               webmail_host: str, timeout: int = 10):
-    """
-    Função principal refatorada para download de faturas
-    """
-    RELAUNCH_TIME = int(os.getenv("RELAUNCH_TIME", "780"))
-    max_passes = int(os.getenv("MAX_PASSES", "300"))
+    
+    RELAUNCH_TIME = int(os.getenv("RELAUNCH_TIME", "720")) 
+    max_passes = int(os.getenv("MAX_PASSES", "80"))
     
     wait = WebDriverWait(driver, timeout)
     selector = "#tbIdentificador tbody tr"
     db = DatabaseManager()
-    monitor = DownloadMonitor()
-    system_checker = COPASASystemChecker()
-
+    download_manager = OptimizedDownloadManager(download_folder)
+    download_monitor = DownloadMonitor()
+    
     matriculas_filtradas = db.filtrar_matriculas_nao_baixadas(matriculas, verificar_hoje_apenas=True)
     pending = {_normalize_matricula(m) for m in (matriculas_filtradas or []) if str(m).strip()}
 
@@ -350,37 +417,57 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
         logger.info("Nenhuma matrícula pendente para processar")
         return
 
-    logger.info(f"🚀 Iniciando processamento de {len(pending)} matrículas")
+    logger.info(f"🚀 SISTEMA OTIMIZADO - Processando {len(pending)} matrículas")
     logger.debug(f"Matrículas pendentes: {sorted(pending)}")
 
     start_time = time.time()
+    session_start = time.time()
     passes = 0
 
-    while pending and passes < max_passes:
+    while pending and passes < max_passes and download_manager.should_continue():
         passes += 1
-        logger.debug(f"Varredura {passes}/{max_passes} - Pendentes: {len(pending)}")
+        logger.debug(f"🔄 Pass {passes}/{max_passes} - Pendentes: {len(pending)}")
 
-        if not system_checker.verificar_estado_sistema(driver, wait):
-            logger.warning("Sistema COPASA instável - aguardando recuperação...")
-            time.sleep(30)
-            continue
-
-        if time.time() - start_time >= RELAUNCH_TIME:
-            logger.info("🔄 Reautenticando preventivamente...")
+        if time.time() - session_start >= RELAUNCH_TIME:
+            logger.info("🔄 Relogin preventivo (12 min)...")
             try:
                 logoff(driver, wait)
                 login_copasa_simple(driver, wait, cpf, password, webmail_user, webmail_password, webmail_host)
                 select_all_option(driver)
-                start_time = time.time()
-                logger.info("✅ Reautenticação concluída")
+                session_start = time.time()
+                logger.info("✅ Relogin preventivo concluído")
             except Exception as e:
-                logger.error(f"Erro na reautenticação: {e}")
+                logger.error(f"Erro no relogin preventivo: {e}")
                 break
 
-        if monitor.deve_pausar():
-            logger.warning("🔄 Muitas passagens vazias - pausando para estabilização...")
-            time.sleep(60)
-            monitor.passes_sem_resultado = 0
+        system_state = download_manager.monitor.detect_system_state(driver)
+        if system_state not in [SystemState.HEALTHY, SystemState.SLOW]:
+            recovery_action = download_manager.monitor.get_recovery_action(system_state, 0)
+            
+            if recovery_action == RecoveryAction.RELOGIN:
+                logger.info("🔐 Sistema requer relogin...")
+                try:
+                    logoff(driver, wait)
+                    login_copasa_simple(driver, wait, cpf, password, webmail_user, webmail_password, webmail_host)
+                    select_all_option(driver)
+                    session_start = time.time()
+                    continue
+                except Exception as e:
+                    logger.error(f"Erro no relogin requerido: {e}")
+                    break
+            
+            elif recovery_action == RecoveryAction.ABORT:
+                logger.error("🛑 Sistema em estado crítico - abortando")
+                break
+            
+            else:
+                download_manager.monitor.execute_recovery(driver, wait, recovery_action)
+                continue
+
+        if download_monitor.deve_pausar():
+            logger.warning("🔄 Muitas passagens vazias - aguardando estabilização...")
+            time.sleep(30)
+            download_monitor.passes_sem_resultado = 0
             continue
 
         try:
@@ -388,13 +475,14 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
         except Exception as e:
             logger.error(f"Erro ao buscar elementos: {e}")
             driver.refresh()
+            time.sleep(2)
             continue
 
         if len(rows) <= 0:
             logger.warning("Lista vazia - possível problema no carregamento")
-            monitor.registrar_pass_vazio()
+            download_monitor.registrar_pass_vazio()
             driver.refresh()
-            time.sleep(3)
+            time.sleep(2)
             continue
 
         matricula_processada_nesta_pass = False
@@ -407,15 +495,39 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
                 if linha not in pending:
                     continue
 
-                status, matricula_processada, motivo = processar_matricula_individual(
-                    driver, wait, row, db, download_folder
+                status, message = download_manager.process_matricula_with_recovery(
+                    driver, wait, row, db, linha
                 )
                 
-                if status in ["ja_baixada", "sem_debitos", "sucesso", "erro_download"]:
+                if status == "relogin_needed":
+                    logger.info("🔐 Relogin solicitado pelo monitor...")
+                    try:
+                        logoff(driver, wait)
+                        login_copasa_simple(driver, wait, cpf, password, webmail_user, webmail_password, webmail_host)
+                        select_all_option(driver)
+                        session_start = time.time()
+                        break
+                    except Exception as e:
+                        logger.error(f"Erro no relogin solicitado: {e}")
+                        pending.discard(linha)
+                        break
+
+                elif status == "abort":
+                    logger.error("🛑 Abortando por solicitação do monitor")
+                    pending.clear()
+                    break
+
+                elif status in ["success", "no_debt", "no_invoice", "skipped"]:
                     pending.discard(linha)
-                    monitor.registrar_processamento()
+                    download_monitor.registrar_processamento()
                     matricula_processada_nesta_pass = True
-                
+                    logger.info(f"✅ {linha}: {message}")
+
+                elif status in ["download_failed", "error", "failed"]:
+                    pending.discard(linha)
+                    logger.error(f"❌ {linha}: {message}")
+                    matricula_processada_nesta_pass = True
+
                 back_status = back_to_list(driver, wait)
                 
                 if back_status == "no_invoice":
@@ -441,14 +553,14 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
                 break
 
         if not matricula_processada_nesta_pass:
-            monitor.registrar_pass_vazio()
+            download_monitor.registrar_pass_vazio()
         
-        monitor.log_estatisticas(passes, len(pending))
+        download_monitor.log_estatisticas(passes, len(pending))
 
-        time.sleep(1)
+        time.sleep(0.5)
 
     if pending:
-        logger.warning(f"⚠️ Matrículas não processadas após {passes} varreduras: {sorted(pending)}")
+        logger.warning(f"⚠️ Matrículas não processadas após {passes} passes: {sorted(pending)}")
     else:
         logger.info("🎉 Todas as matrículas foram processadas com sucesso!")
 
@@ -458,12 +570,13 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
         rename_all_pdfs_safe_mode(download_folder)
         logger.info("✅ Arquivos renomeados")
         
-        txt_folder = os.path.join(download_folder, "IGNORAR")
-        relatorio_folder = os.path.join(download_folder, "Relatorios")
+        txt_folder = os.path.join(download_folder, "contas_txt")
+        relatorio_folder = os.path.join(download_folder, "relatorios")
         generate_reports_from_folder(download_folder, txt_folder, relatorio_folder)
         logger.info("✅ Relatórios gerados com sucesso!")
         
     except Exception as e:
         logger.error(f"❌ Erro no processamento final: {e}")
 
-    logger.info(f"🏁 Execução finalizada - Total processadas: {monitor.total_processadas}")
+    download_manager.log_final_stats()
+    logger.info(f"🏁 Execução finalizada - Total: {download_monitor.total_processadas} processadas")
