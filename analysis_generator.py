@@ -31,66 +31,85 @@ def generate_report(pdf_path, txt_dir, report_dir):
     llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash-lite', temperature=0.1)
 
     template = """
-    Tarefa: Gere o RELATÓRIO DE ANÁLISE HÍDRICA – COPASA apenas a partir do arquivo .txt fornecido (fatura COPASA). Não use conhecimento externo, não invente valores, não use “estimado”.
+    Tarefa: Gere o RELATÓRIO DE ANÁLISE HÍDRICA – COPASA exclusivamente a partir do arquivo .txt fornecido (fatura COPASA). 
+    ⚠️ Importante: Não use conhecimento externo, não invente valores, não use “estimado” ou “aprox.”. Apenas o que consta no arquivo.
 
     Saída obrigatória (formato exato):
 
     RELATÓRIO DE ANÁLISE HIDRICA - COPASA
 
     IDENTIFICAÇÃO:
-    • Condomínio/Edificação:  : Utilize as regras de execução abaixo
-    • Endereço:  : Utilize as regras de execução abaixo
-    • Código do Cliente:  : Utilize as regras de execução abaixo
+    • Condomínio/Edificação:  
+    • Endereço:  
+    • Código do Cliente:  
 
     FATURA ATUAL:
-    • Data de Emissão:  : Utilize as regras de execução abaixo
-    • Período de Referência:  : Utilize as regras de execução abaixo
-    • Data de Vencimento:  : Utilize as regras de execução abaixo
+    • Data de Emissão:  
+    • Período de Referência:  
+    • Data de Vencimento:  
 
     CONSUMO:
-    • Leitura Anterior: : Utilize as regras de execução abaixo
-    • Leitura Atual:  : Utilize as regras de execução abaixo
-    • Consumo Total:  : Utilize as regras de execução abaixo
-    • Consumo Médio Diário:  : Utilize as regras de execução abaixo
+    • Leitura Anterior:  
+    • Leitura Atual:  
+    • Consumo Total:  
+    • Consumo Médio Diário:  
 
     VALORES:
-    • Valor do Consumo:  : Utilize as regras de execução abaixo
-    • Taxa de Esgoto:  : Utilize as regras de execução abaixo
-    • TOTAL:  : Utilize as regras de execução abaixo
+    • Valor do Consumo (Água):  
+    • Taxa de Esgoto:  
+    • TOTAL:  
 
     OBSERVAÇÕES:
-    • [Análise do consumo e alertas se necessário] : Utilize as regras de execução abaixo
-    • [Apenas as observações importantes presentes na fatura] : Utilize as regras de execução abaixo
+    • [Alertas obrigatórios]  
+    • [Apenas as observações importantes presentes na fatura]  
 
+    =====================================
+    Regras detalhadas de extração e validação:
 
-    Regras de extração (seguir à risca):
+    🔹 Identificação
+    - **Condomínio/Edificação**: capturar o nome após “COND”/“ED” ou, se não existir, usar o nome do imóvel presente na área “TOTAL A PAGAR”.
+    - **Endereço**: concatenar logradouro + número + bairro + cidade/UF + CEP, sempre que todos os elementos estiverem disponíveis.
+    - **Código do Cliente**: usar MATRÍCULA exatamente como aparece, com espaços.
 
-    Condomínio/Edificação: texto após “COND”/“ED” ou nome do imóvel na área “TOTAL A PAGAR”.
-    Endereço: concatenar logradouro + número + bairro + cidade/UF + CEP quando presentes (ex.: “RUA DOUTOR PLINIO MORAES, 464 – CIDADE NOVA, BELO HORIZONTE/MG – CEP 31170-170”).
-    Código do Cliente: usar MATRÍCULA exatamente como aparece (ex.: “0 000 105 383 3”).
-    Período de Referência / Emissão: na área “REFERÊNCIA DA CONTA”, mapear mês/ano, “Quando foi emitida?”, e “Data da apresentação”. Use “Data de Emissão” = Quando foi emitida.
-    Vencimento: data na linha/coluna “VENCIMENTO”.
-    Leituras do hidrômetro (m³): localizar dois padrões dd/mm/aaaa <inteiro>; a data mais antiga = Leitura Anterior, a mais recente = Leitura Atual (ex.: “01/07/2025 1058” e “31/07/2025 1092”). Não confundir com a tabela de consumo.
-    Consumo Total: priorizar o valor explícito “34m3 (34.000 litros)” do mês de referência. Se não existir, calcular Leitura Atual − Leitura Anterior em m³.
-    Consumo Médio Diário: na linha “SEU CONSUMO EM LITROS” do mês de referência, capturar o 3º número = litros/dia (ex.: “1.133”). Escreva “litros/dia”.
-    Valores:
-    Valor do Consumo (Água): linha “ABASTECIMENTO DE AGUA”.
-    Taxa de Esgoto: linha “ESGOTO …”.
-    TOTAL: usar o “TOTAL A PAGAR” ou o valor destacado ao fim (preferir o total final quando ambos existirem).
-    Formatação:
-    Números: respeitar separadores da fatura (ex.: “34.000”, “538,38”).
-    Moeda: R$ e duas casas.
-    Não escreva “estimado”, “aprox.” nem comentários fora de “OBSERVAÇÕES”.
-    Validações (obrigatórias):
-    Verificar se (Leitura Atual − Leitura Anterior) = Consumo Total (m³) quando ambos existirem; tolerância 1 m³.
-    Confirmar que Consumo Médio Diário vem da tabela do mês (3º número).
-    Se qualquer campo estiver ausente no texto, escreva “Não informado” (não invente).
-    OBSERVAÇÕES:
-    Comente brevemente se o consumo está dentro do histórico recente, acima ou abaixo (compare com meses anteriores da mesma tabela).
-    Alerta de possível anomalia caso a validação de consumo não feche (>1 m³ de diferença) ou haja salto atípico (>40% vs. mediana dos 6 últimos meses).
-    Adicione outras observações relevantes (ex.: “Conta com tarifa social”, “Hidrômetro novo instalado em xx/xxxx”).
-    Adicione as observações presentes na fatura, se houver.
-    Importante: Siga somente o texto do arquivo. Não inclua notas como “estimado”. Não mude o cabeçalho nem a ordem das seções.
+    🔹 Fatura Atual
+    - **Período de Referência**: do campo “REFERÊNCIA DA CONTA”.
+    - **Data de Emissão**: do campo “Quando foi emitida?”.
+    - **Data de Vencimento**: da linha/coluna “VENCIMENTO”.
+
+    🔹 Consumo
+    - **Leituras**: identificar dois padrões `dd/mm/aaaa <inteiro>`.  
+    - A data mais antiga = Leitura Anterior  
+    - A data mais recente = Leitura Atual  
+    - **Consumo Total**: se houver linha explícita “34m³ (34.000 litros)”, usar esse valor. Se não houver, calcular: Leitura Atual − Leitura Anterior.  
+    - **Validação**: verificar se (Leitura Atual − Leitura Anterior) ≈ Consumo Total (tolerância de 1m³).  
+    - **Consumo Médio Diário**: capturar o 3º número da linha “SEU CONSUMO EM LITROS” correspondente ao mês de referência. Acrescentar “litros/dia”.
+
+    🔹 Valores
+    - **Valor do Consumo (Água)**: linha “ABASTECIMENTO DE AGUA”.  
+    - **Taxa de Esgoto**: linha iniciada com “ESGOTO…”.  
+    - **TOTAL**: valor da área “TOTAL A PAGAR” (preferir o total final).
+
+    🔹 Observações
+    - Compare o consumo atual com os últimos 6 meses:  
+    - Se variação > +40% em relação à mediana, alertar “Consumo atípico (acima do histórico)”.  
+    - Se variação < −40%, alertar “Consumo atípico (abaixo do histórico)”.  
+    - Se a validação das leituras não fechar (>1 m³ diferença), sinalizar “Possível anomalia no registro de consumo”.
+    - Obrigatório informar se foi feito por média.                                      - INFORMAR EM UPPERCASE
+    - Obrigatório informar se houve problema na coleta.                                 - INFORMAR EM UPPERCASE
+    - Obrigatório informar se houve uso atípico de água.                                - INFORMAR EM UPPERCASE
+    - Obrigatório informar se foi feito pelo uso do consumo hídrico.                    - INFORMAR EM UPPERCASE
+    - Obrigatório informar se tem possibilidade de vazamento ou problema com a leitura. - INFORMAR EM UPPERCASE
+    - Incluir avisos da fatura (ex.: “Tarifa social”, “Consulta pública ANA”, “Hidrômetro novo instalado”).  
+    - Se não houver observações, escrever: “Não informado”.
+
+    🔹 Formatação
+    - Números: respeitar separadores como na fatura (ex.: “34.000”, “538,38”).  
+    - Moeda: sempre “R$” seguido de duas casas decimais.  
+    - Não acrescentar notas ou comentários fora da seção **OBSERVAÇÕES**.  
+    - Se qualquer campo não existir no texto, escrever exatamente “Não informado”.
+
+    =====================================
+    ⚠️ Nota final: Este relatório foi gerado automaticamente por Inteligência Artificial com base no arquivo fornecido e **pode conter erros**.
     {text}
     """
 
