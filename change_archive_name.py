@@ -10,9 +10,6 @@ from langchain_core.output_parsers import StrOutputParser
 load_dotenv()
 
 def get_new_filename_from_pdf(pdf_path):
-    """
-    Usa LLM para extrair o novo nome do arquivo a partir do conteúdo do PDF.
-    """  
     with pdfplumber.open(pdf_path) as pdf:
         text_data = ""
         for page in pdf.pages:
@@ -55,16 +52,10 @@ def get_new_filename_from_pdf(pdf_path):
     return novo_nome
 
 def check_duplicate_exists(pasta, novo_nome):
-    """
-    Verifica se já existe um arquivo com o mesmo nome na pasta.
-    """
     caminho_completo = os.path.join(pasta, novo_nome)
     return os.path.exists(caminho_completo)
 
 def rename_pdf(pdf_path):
-    """
-    Renomeia um PDF individual, verificando duplicatas antes.
-    """
     diretorio = os.path.dirname(pdf_path)
     nome_atual = os.path.basename(pdf_path)
     
@@ -73,7 +64,7 @@ def rename_pdf(pdf_path):
         
         if check_duplicate_exists(diretorio, novo_nome):
             print(f"[DUPLICATA ENCONTRADA] {nome_atual} seria renomeado para {novo_nome}, mas já existe. Removendo duplicata...")
-            os.remove(pdf_path)  # Remove o arquivo duplicado
+            os.remove(pdf_path)
             return None
         
         novo_caminho = os.path.join(diretorio, novo_nome)
@@ -86,9 +77,6 @@ def rename_pdf(pdf_path):
         return None
 
 def rename_all_pdfs(pasta):
-    """
-    Processa todos os PDFs da pasta, removendo duplicatas e renomeando os únicos.
-    """
     arquivos_processados = []
     arquivos_removidos = 0
     
@@ -105,7 +93,7 @@ def rename_all_pdfs(pasta):
         resultado = rename_pdf(caminho)
         
         if resultado is None:
-            if not os.path.exists(caminho):  # Se não existe mais, foi removido
+            if not os.path.exists(caminho):
                 arquivos_removidos += 1
         else:
             arquivos_processados.append(resultado)
@@ -118,9 +106,6 @@ def rename_all_pdfs(pasta):
     return arquivos_processados
 
 def rename_all_pdfs_safe_mode(pasta):
-    """
-    Versão mais segura que move duplicatas para uma pasta separada ao invés de deletar.
-    """
     arquivos_processados = []
     arquivos_movidos = 0
     
@@ -182,4 +167,3 @@ def rename_all_pdfs_safe_mode(pasta):
     print(f"Total de arquivos analisados: {len(pdfs_para_processar) + len(arquivos_ja_renomeados)}\n")
     
     return arquivos_processados + arquivos_ja_renomeados
-    

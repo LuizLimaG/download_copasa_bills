@@ -9,10 +9,7 @@ from langchain_core.output_parsers import StrOutputParser
 
 load_dotenv()
 
-def get_new_filename_from_pdf(pdf_path):
-    """
-    Usa LLM para extrair o novo nome do arquivo a partir do conteúdo do PDF.
-    """  
+def get_new_filename_from_pdf(pdf_path):  
     with pdfplumber.open(pdf_path) as pdf:
         text_data = ""
         for page in pdf.pages:
@@ -54,11 +51,6 @@ def get_new_filename_from_pdf(pdf_path):
     return novo_nome
 
 def already_renamed(nome_arquivo):
-    """
-    Verifica se o arquivo já está no padrão esperado.
-    """
-    # Critério: deve conter "_" e terminar em ".pdf"
-
     nome_upper = nome_arquivo.upper()
 
     return (
@@ -68,9 +60,6 @@ def already_renamed(nome_arquivo):
     )
 
 def rename_only_new(pasta):
-    """
-    Renomeia apenas os PDFs que ainda não estão no padrão.
-    """
     arquivos_processados = []
     arquivos_pulados = []
 
