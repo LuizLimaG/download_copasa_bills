@@ -332,7 +332,7 @@ class OptimizedDownloadManager:
                 pass
             
             try:
-                download_button = WebDriverWait(driver, 2).until(
+                download_button = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable((By.CLASS_NAME, "fa-download"))
                 )
                 download_button.click()
@@ -402,7 +402,7 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
                               webmail_host: str, timeout: int = 10):
     
     RELAUNCH_TIME = int(os.getenv("RELAUNCH_TIME", "720")) 
-    max_passes = int(os.getenv("MAX_PASSES", "80"))
+    max_passes = 50
     
     wait = WebDriverWait(driver, timeout)
     selector = "#tbIdentificador tbody tr"
@@ -570,8 +570,8 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
         rename_all_pdfs_safe_mode(download_folder)
         logger.info("✅ Arquivos renomeados")
         
-        txt_folder = os.path.join(download_folder, "contas_txt")
-        relatorio_folder = os.path.join(download_folder, "relatorios")
+        txt_folder = os.path.join(download_folder, "IGNORAR")
+        relatorio_folder = os.path.join(download_folder, "Relatorios - FATURAS")
         generate_reports_from_folder(download_folder, txt_folder, relatorio_folder)
         logger.info("✅ Relatórios gerados com sucesso!")
         
