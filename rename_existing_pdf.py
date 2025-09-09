@@ -58,7 +58,14 @@ def already_renamed(nome_arquivo):
     Verifica se o arquivo já está no padrão esperado.
     """
     # Critério: deve conter "_" e terminar em ".pdf"
-    return nome_arquivo.endswith(".pdf") and "_" in nome_arquivo
+
+    nome_upper = nome_arquivo.upper()
+
+    return (
+        nome_arquivo.endswith('.pdf')
+        and "_" in nome_arquivo
+        and ("CONDOMINIO" in nome_upper or "EDIFICIO" in nome_upper)
+    )
 
 def rename_only_new(pasta):
     """

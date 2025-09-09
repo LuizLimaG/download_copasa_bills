@@ -16,6 +16,7 @@ from select_all import select_all_option
 from database_manager import DatabaseManager
 from change_archive_name import rename_all_pdfs_safe_mode
 from analysis_generator import generate_reports_from_folder
+from rename_existing_pdf import rename_only_new
 
 logging.basicConfig(
     level=logging.INFO,
@@ -568,6 +569,7 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
     
     try:
         rename_all_pdfs_safe_mode(download_folder)
+        rename_only_new(download_folder)
         logger.info("✅ Arquivos renomeados")
         
         txt_folder = os.path.join(download_folder, "IGNORAR")

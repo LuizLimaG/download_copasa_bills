@@ -68,7 +68,7 @@ def generate_report(pdf_path, txt_dir, report_dir):
 
     🔹 Identificação
     - **Condomínio/Edificação**: capturar o nome após “COND”/“ED” ou, se não existir, usar o nome do imóvel presente na área “TOTAL A PAGAR”.
-    - **Endereço**: concatenar logradouro + número + bairro + cidade/UF + CEP, sempre que todos os elementos estiverem disponíveis.
+    - **Endereço**: concatenar logradouro + número + bairro + cidade/UF + CEP, sempre que todos os elementos estiverem disponíveis. 'FORMATO: Rua <Nome da rua>, <número>, <Bairro>, <Cidade/UF>, CEP.'
     - **Código do Cliente**: usar MATRÍCULA exatamente como aparece, com espaços.
 
     🔹 Fatura Atual
@@ -80,7 +80,7 @@ def generate_report(pdf_path, txt_dir, report_dir):
     - **Leituras**: identificar dois padrões `dd/mm/aaaa <inteiro>`.  
     - A data mais antiga = Leitura Anterior  
     - A data mais recente = Leitura Atual  
-    - **Consumo Total**: se houver linha explícita “34m³ (34.000 litros)”, usar esse valor. Se não houver, calcular: Leitura Atual − Leitura Anterior.  
+    - **Consumo Total**: se houver linha explícita “XXm³ (XX.XXX litros)”, usar esse valor. Se não houver, calcular: Leitura Atual − Leitura Anterior.  
     - **Validação**: verificar se (Leitura Atual − Leitura Anterior) ≈ Consumo Total (tolerância de 1m³).  
     - **Consumo Médio Diário**: capturar o 3º número da linha “SEU CONSUMO EM LITROS” correspondente ao mês de referência. Acrescentar “litros/dia”.
 
@@ -103,13 +103,13 @@ def generate_report(pdf_path, txt_dir, report_dir):
     - Se não houver observações, escrever: “Não informado”.
 
     🔹 Formatação
-    - Números: respeitar separadores como na fatura (ex.: “34.000”, “538,38”).  
+    - Números: respeitar separadores como na fatura (ex.: “XX.XXX”, “XXX,XX”).  
     - Moeda: sempre “R$” seguido de duas casas decimais.  
     - Não acrescentar notas ou comentários fora da seção **OBSERVAÇÕES**.  
     - Se qualquer campo não existir no texto, escrever exatamente “Não informado”.
 
     =====================================
-    ⚠️ Nota final: Este relatório foi gerado automaticamente por Inteligência Artificial com base no arquivo fornecido e **pode conter erros**.
+    ⚠️ Nota final: Este relatório foi gerado automaticamente por Inteligência Artificial com base na fatura fornecida e **pode conter erros**.
     {text}
     """
 
