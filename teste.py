@@ -1,0 +1,2 @@
+from move_files import mover_arquivos_e_relatorios
+mover_arquivos_e_relatorios()
