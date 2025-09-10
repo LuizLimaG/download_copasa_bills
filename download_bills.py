@@ -17,6 +17,7 @@ from database_manager import DatabaseManager
 from change_archive_name import rename_all_pdfs_safe_mode
 from analysis_generator import generate_reports_from_folder
 from rename_existing_pdf import rename_only_new
+from move_files import GerenciadorArquivos
 
 logging.basicConfig(
     level=logging.INFO,
@@ -576,6 +577,14 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
         relatorio_folder = os.path.join(download_folder, "Relatorios - FATURAS")
         generate_reports_from_folder(download_folder, txt_folder, relatorio_folder)
         logger.info("✅ Relatórios gerados com sucesso!")
+
+        gerenciador = GerenciadorArquivos()    
+        gerenciador.configurar_caminhos(
+            pasta_downloads="C:/Users/Usuario/Downloads",
+            pasta_relatorios="C:/Users/Usuario/Relatorios",
+            pasta_destino_arquivos="C:/Users/Usuario/Documentos/ArquivosProcessados",
+            pasta_destino_relatorios="C:/Users/Usuario/Documentos/RelatoriosFinalizados"
+        )
         
     except Exception as e:
         logger.error(f"❌ Erro no processamento final: {e}")
