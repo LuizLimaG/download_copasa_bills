@@ -572,7 +572,7 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
         rename_only_new(download_folder)
         logger.info("✅ Arquivos renomeados")
         
-        txt_folder = os.path.join(download_folder, "IGNORAR")
+        txt_folder = os.path.join(download_folder, "Faturas - TXT")
         relatorio_folder = os.path.join(download_folder, "Relatorios - FATURAS")
         generate_reports_from_folder(download_folder, txt_folder, relatorio_folder)
         logger.info("✅ Relatórios gerados com sucesso!")

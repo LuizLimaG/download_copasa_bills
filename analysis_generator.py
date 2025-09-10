@@ -94,6 +94,7 @@ def generate_report(pdf_path, txt_dir, report_dir):
     - Se variação > +40% em relação à mediana, alertar “Consumo atípico (acima do histórico)”.  
     - Se variação < −40%, alertar “Consumo atípico (abaixo do histórico)”.  
     - Se a validação das leituras não fechar (>1 m³ diferença), sinalizar “Possível anomalia no registro de consumo”.
+    se algum abaixo não existir, NÃO COLOQUE: NÃO INFORMADO, só coloque as informações abaixo se existirem.
     - Obrigatório informar se foi feito por média.                                      - INFORMAR EM UPPERCASE
     - Obrigatório informar se houve problema na coleta.                                 - INFORMAR EM UPPERCASE
     - Obrigatório informar se houve uso atípico de água.                                - INFORMAR EM UPPERCASE

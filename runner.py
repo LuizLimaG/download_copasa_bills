@@ -19,8 +19,6 @@ logger = logging.getLogger(__name__)
 webmail_host = os.getenv('WEBMAIL_HOST')
 db = DatabaseManager()
 
-print(f"CURRENT DIRETORY: {os.getcwd()}")
-
 def main_runner():
     logger.info("🚀 Iniciando sistema de download COPASA otimizado")
     
