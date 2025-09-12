@@ -32,7 +32,7 @@ def generate_report(pdf_path, txt_dir, report_dir):
 
     template = """
     Tarefa: Gere o RELATÓRIO DE ANÁLISE HÍDRICA – COPASA exclusivamente a partir do arquivo .txt fornecido (fatura COPASA). 
-    ⚠️ Importante: Não use conhecimento externo, não invente valores, não use “estimado” ou “aprox.”. Apenas o que consta no arquivo.
+    ⚠️ Importante: Não use conhecimento externo, não invente valores, não use "estimado" ou "aprox.". Apenas o que consta no arquivo.
 
     Saída obrigatória (formato exato):
 
@@ -67,46 +67,46 @@ def generate_report(pdf_path, txt_dir, report_dir):
     Regras detalhadas de extração e validação:
 
     🔹 Identificação
-    - **Condomínio/Edificação**: capturar o nome após “COND”/“ED” ou, se não existir, usar o nome do imóvel presente na área “TOTAL A PAGAR”.
+    - **Condomínio/Edificação**: capturar o nome após "COND"/"ED" ou, se não existir, usar o nome do imóvel presente na área "TOTAL A PAGAR".
     - **Endereço**: concatenar logradouro + número + bairro + cidade/UF + CEP, sempre que todos os elementos estiverem disponíveis. 'FORMATO: Rua <Nome da rua>, <número>, <Bairro>, <Cidade/UF>, CEP.'
     - **Código do Cliente**: usar MATRÍCULA exatamente como aparece, com espaços.
 
     🔹 Fatura Atual
-    - **Período de Referência**: do campo “REFERÊNCIA DA CONTA”.
-    - **Data de Emissão**: do campo “Quando foi emitida?”.
-    - **Data de Vencimento**: da linha/coluna “VENCIMENTO”.
+    - **Período de Referência**: do campo "REFERÊNCIA DA CONTA".
+    - **Data de Emissão**: do campo "Quando foi emitida?".
+    - **Data de Vencimento**: da linha/coluna "VENCIMENTO".
 
     🔹 Consumo
     - **Leituras**: identificar dois padrões `dd/mm/aaaa <inteiro>`.  
     - A data mais antiga = Leitura Anterior  
     - A data mais recente = Leitura Atual  
-    - **Consumo Total**: se houver linha explícita “XXm³ (XX.XXX litros)”, usar esse valor. Se não houver, calcular: Leitura Atual − Leitura Anterior.  
+    - **Consumo Total**: se houver linha explícita "XXm³ (XX.XXX litros)", usar esse valor. Se não houver, calcular: Leitura Atual − Leitura Anterior.  
     - **Validação**: verificar se (Leitura Atual − Leitura Anterior) ≈ Consumo Total (tolerância de 1m³).  
-    - **Consumo Médio Diário**: capturar o 3º número da linha “SEU CONSUMO EM LITROS” correspondente ao mês de referência. Acrescentar “litros/dia”.
+    - **Consumo Médio Diário**: capturar o 3º número da linha "SEU CONSUMO EM LITROS" correspondente ao mês de referência. Acrescentar "litros/dia".
 
     🔹 Valores
-    - **Valor do Consumo (Água)**: linha “ABASTECIMENTO DE AGUA”.  
-    - **Taxa de Esgoto**: linha iniciada com “ESGOTO…”.  
-    - **TOTAL**: valor da área “TOTAL A PAGAR” (preferir o total final).
+    - **Valor do Consumo (Água)**: linha "ABASTECIMENTO DE AGUA".  
+    - **Taxa de Esgoto**: linha iniciada com "ESGOTO…".  
+    - **TOTAL**: valor da área "TOTAL A PAGAR" (preferir o total final).
 
     🔹 Observações
     - Compare o consumo atual com os últimos 6 meses:  
-    - Se variação > +40% em relação à mediana, alertar “Consumo atípico (acima do histórico)”.  
-    - Se variação < −40%, alertar “Consumo atípico (abaixo do histórico)”.  
-    - Se a validação das leituras não fechar (>1 m³ diferença), sinalizar “Possível anomalia no registro de consumo”.
+    - Se variação > +40% em relação à mediana, alertar "Consumo atípico (acima do histórico)".  
+    - Se variação < −40%, alertar "Consumo atípico (abaixo do histórico)".  
+    - Se a validação das leituras não fechar (>1 m³ diferença), sinalizar "Possível anomalia no registro de consumo" e explicar.
     - Obrigatório informar se foi feito por média.                                      - INFORMAR EM UPPERCASE : NÃO COLOQUE: NÃO INFORMADO, só coloque as informações se existirem.
     - Obrigatório informar se houve problema na coleta.                                 - INFORMAR EM UPPERCASE : NÃO COLOQUE: NÃO INFORMADO, só coloque as informações se existirem.
     - Obrigatório informar se houve uso atípico de água.                                - INFORMAR EM UPPERCASE : NÃO COLOQUE: NÃO INFORMADO, só coloque as informações se existirem.
     - Obrigatório informar se foi feito pelo uso do consumo hídrico.                    - INFORMAR EM UPPERCASE : NÃO COLOQUE: NÃO INFORMADO, só coloque as informações se existirem.
     - Obrigatório informar se tem possibilidade de vazamento ou problema com a leitura. - INFORMAR EM UPPERCASE : NÃO COLOQUE: NÃO INFORMADO, só coloque as informações se existirem.
-    - Incluir avisos da fatura (ex.: “Tarifa social”, “Consulta pública ANA”, “Hidrômetro novo instalado”).  
-    - Se não houver observações, escrever: “Não informado”.
+    - Incluir avisos da fatura (ex.: "Tarifa social", "Consulta pública ANA", "Hidrômetro novo instalado").  
+    - Se não houver observações, escrever: "Não informado".
 
     🔹 Formatação
-    - Números: respeitar separadores como na fatura (ex.: “XX.XXX”, “XXX,XX”).  
-    - Moeda: sempre “R$” seguido de duas casas decimais.  
+    - Números: respeitar separadores como na fatura (ex.: "XX.XXX", "XXX,XX").  
+    - Moeda: sempre "R$" seguido de duas casas decimais.  
     - Não acrescentar notas ou comentários fora da seção **OBSERVAÇÕES**.  
-    - Se qualquer campo não existir no texto, escrever exatamente “Não informado”.
+    - Se qualquer campo não existir no texto, escrever exatamente "Não informado".
 
     =====================================
     ⚠️ Nota final: Este relatório foi gerado automaticamente por Inteligência Artificial com base na fatura fornecida e **pode conter erros**.
@@ -127,13 +127,39 @@ def generate_report(pdf_path, txt_dir, report_dir):
     return str(report_path)
 
 def generate_reports_from_folder(pasta_pdfs, pasta_txts, pasta_relat):
+    """
+    Gera relatórios apenas para PDFs que ainda não possuem relatório correspondente.
+    """
     os.makedirs(pasta_txts, exist_ok=True)
     os.makedirs(pasta_relat, exist_ok=True)
 
+    existing_reports = set()
+    if os.path.exists(pasta_relat):
+        for arquivo in os.listdir(pasta_relat):
+            if arquivo.endswith('_relatorio.txt'):
+                pdf_base_name = arquivo.replace('_relatorio.txt', '')
+                existing_reports.add(pdf_base_name)
+    
+    print(f"📊 Relatórios já existentes: {len(existing_reports)}")
+    
+    pdfs_processados = 0
+    pdfs_pulados = 0
+    
     for nome in os.listdir(pasta_pdfs):
         if nome.lower().endswith(".pdf"):
+            pdf_name = Path(nome).stem
+            
+            if pdf_name in existing_reports:
+                print(f"⏭️  Pulando {nome} - relatório já existe")
+                pdfs_pulados += 1
+                continue
+            
             caminho = os.path.join(pasta_pdfs, nome)
             try:
+                print(f"🆕 Processando novo PDF: {nome}")
                 generate_report(caminho, pasta_txts, pasta_relat)
+                pdfs_processados += 1
             except Exception as e:
                 print(f"[ERRO no relatório] {nome}: {e}")
+    
+    print(f"✅ Resumo: {pdfs_processados} novos relatórios gerados, {pdfs_pulados} PDFs pulados (já tinham relatório)")
