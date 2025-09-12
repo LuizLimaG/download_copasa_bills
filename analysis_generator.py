@@ -38,23 +38,23 @@ def generate_report(pdf_path, txt_dir, report_dir):
 
     RELATÓRIO DE ANÁLISE HIDRICA - COPASA
 
-    IDENTIFICAÇÃO:
+    IDENTIFICAÇÃO:  [IMPORTANTE]
     • Condomínio/Edificação:  
     • Endereço:  
     • Código do Cliente:  
 
-    FATURA ATUAL:
+    FATURA ATUAL:   [IMPORTANTE]
     • Data de Emissão:  
     • Período de Referência:  
     • Data de Vencimento:  
 
-    CONSUMO:
+    CONSUMO:    [IMPORTANTE]
     • Leitura Anterior:  
     • Leitura Atual:  
     • Consumo Total:  
     • Consumo Médio Diário:  
 
-    VALORES:
+    VALORES:    [IMPORTANTE]
     • Valor do Consumo (Água):  
     • Taxa de Esgoto:  
     • TOTAL:  
@@ -97,7 +97,6 @@ def generate_report(pdf_path, txt_dir, report_dir):
     - Obrigatório informar se foi feito por média.                                      - INFORMAR EM UPPERCASE : NÃO COLOQUE: NÃO INFORMADO, só coloque as informações se existirem.
     - Obrigatório informar se houve problema na coleta.                                 - INFORMAR EM UPPERCASE : NÃO COLOQUE: NÃO INFORMADO, só coloque as informações se existirem.
     - Obrigatório informar se houve uso atípico de água.                                - INFORMAR EM UPPERCASE : NÃO COLOQUE: NÃO INFORMADO, só coloque as informações se existirem.
-    - Obrigatório informar se foi feito pelo uso do consumo hídrico.                    - INFORMAR EM UPPERCASE : NÃO COLOQUE: NÃO INFORMADO, só coloque as informações se existirem.
     - Obrigatório informar se tem possibilidade de vazamento ou problema com a leitura. - INFORMAR EM UPPERCASE : NÃO COLOQUE: NÃO INFORMADO, só coloque as informações se existirem.
     - Incluir avisos da fatura (ex.: "Tarifa social", "Consulta pública ANA", "Hidrômetro novo instalado").  
     - Se não houver observações, escrever: "Não informado".
@@ -106,7 +105,7 @@ def generate_report(pdf_path, txt_dir, report_dir):
     - Números: respeitar separadores como na fatura (ex.: "XX.XXX", "XXX,XX").  
     - Moeda: sempre "R$" seguido de duas casas decimais.  
     - Não acrescentar notas ou comentários fora da seção **OBSERVAÇÕES**.  
-    - Se qualquer campo não existir no texto, escrever exatamente "Não informado".
+    - Se qualquer campo importante não existir no texto, escrever exatamente "Não informado", o restante não escreva nada.
 
     =====================================
     ⚠️ Nota final: Este relatório foi gerado automaticamente por Inteligência Artificial com base na fatura fornecida e **pode conter erros**.
