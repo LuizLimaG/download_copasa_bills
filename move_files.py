@@ -7,12 +7,12 @@ def mover_arquivos_e_relatorios():
     """Script simples para mover arquivos baixados e relatórios"""
     
     # SEUS CAMINHOS (ajuste conforme necessário)
-    pasta_downloads = r"C:\Users\luizz\PROJETOS\day_identifier_downloader\contas"
-    pasta_relatorios = r"C:\Users\luizz\PROJETOS\day_identifier_downloader\contas\relatorios"
+    pasta_downloads = r"C:\Users\User\Documents\Automacao\download_copasa_bills\Faturas"
+    pasta_relatorios = r"C:\Users\User\Documents\Automacao\download_copasa_bills\Faturas\Relatorios - FATURAS"
     
     # DESTINOS (crie essas pastas ou ajuste os caminhos)
-    pasta_destino_arquivos = r"C:\Users\luizz\PROJETOS\day_identifier_downloader\contas\arquivos_processados"
-    pasta_destino_relatorios = r"C:\Users\luizz\PROJETOS\day_identifier_downloader\contas\relatorios_processados"
+    pasta_destino_arquivos = r"z:\RINTEC - 01 - GERAL\RINTEC - COPASA TESTE\Faturas"
+    pasta_destino_relatorios = r"z:\RINTEC - 01 - GERAL\RINTEC - COPASA TESTE\Relatorios"
     
     print("🚀 INICIANDO MOVIMENTAÇÃO DE ARQUIVOS")
     print("=" * 50)
@@ -102,8 +102,4 @@ def mover_arquivos_e_relatorios():
         print("⚠️ Nenhum arquivo foi movido")
         print("   - Verifique se há arquivos nas pastas de origem")
         print("   - Verifique as permissões")
-    print("=" * 50)
-
-# EXECUTAR
-if __name__ == "__main__":
-    mover_arquivos_e_relatorios()
+        print("=" * 50)

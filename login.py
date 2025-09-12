@@ -97,7 +97,7 @@ def login_copasa(driver, wait, cpf, password, webmail_user, webmail_password, we
             service_found = False
             
             for service in services:
-                if "Segunda via de contas" in service.text:
+                if "Pagamentos e 2ª via de contas" in service.text:
                     service.click()
                     print("Acessou 'Segunda via de contas'")
                     service_found = True
