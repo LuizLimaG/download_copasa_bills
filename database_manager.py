@@ -48,7 +48,6 @@ class DatabaseManager:
         return self._extract_matriculas(response)
 
     def matricula_ja_baixada_hoje(self, matricula: str) -> bool:
-        """Verifica se uma matrícula já foi baixada com sucesso hoje"""
         hoje = datetime.now().date()
         
         response = (
@@ -63,10 +62,8 @@ class DatabaseManager:
         return len(response.data) > 0
 
     def matricula_ja_baixada_no_mes_atual(self, matricula: str) -> bool:
-        """Verifica se uma matrícula já foi baixada com sucesso no mês atual"""
         agora = datetime.now()
         inicio_mes = datetime(agora.year, agora.month, 1).date()
-        fim_mes = datetime(agora.year, agora.month + 1, 1).date() if agora.month < 12 else datetime(agora.year + 1, 1, 1).date()
         
         response = (
             self.supabase.table('tentativas_download')
@@ -74,14 +71,12 @@ class DatabaseManager:
             .eq('matricula_numero', matricula)
             .eq('sucesso', True)
             .gte('data_tentativa', inicio_mes)
-            .lt('data_tentativa', fim_mes)
             .execute()
         )
         
         return len(response.data) > 0
 
     def matricula_ja_baixada_recentemente(self, matricula: str, dias: int = 1) -> bool:
-        """Verifica se uma matrícula já foi baixada com sucesso nos últimos X dias"""
         data_limite = datetime.now() - timedelta(days=dias)
         
         response = (
@@ -134,16 +129,6 @@ class DatabaseManager:
         return matriculas_pendentes
 
     def filtrar_matriculas_nao_baixadas(self, matriculas: List[str], verificar_mes_atual: bool = True) -> List[str]:
-        """
-        Filtra uma lista de matrículas removendo aquelas que já foram baixadas com sucesso
-        
-        Args:
-            matriculas: Lista de matrículas para verificar
-            verificar_mes_atual: Se True, verifica downloads no mês atual. Se False, verifica apenas hoje
-        
-        Returns:
-            Lista de matrículas que ainda não foram baixadas
-        """
         if not matriculas:
             return []
         
@@ -173,14 +158,6 @@ class DatabaseManager:
         self.supabase.table('tentativas_download').insert(data).execute()
 
     def get_matriculas_para_cpf(self, cpf: str, incluir_pendentes: bool = True, verificar_duplicatas: bool = True) -> List[str]:
-        """
-        Obtém matrículas para processar para um CPF específico
-        
-        Args:
-            cpf: CPF para buscar matrículas
-            incluir_pendentes: Se deve incluir matrículas pendentes de dias anteriores
-            verificar_duplicatas: Se deve filtrar matrículas já baixadas no mês atual
-        """
         hoje = datetime.now().day
         matriculas_hoje = self.get_matriculas_por_dia(hoje, cpf)
         
@@ -190,9 +167,13 @@ class DatabaseManager:
             matriculas_hoje = list(set(matriculas_hoje))
         
         if verificar_duplicatas:
-            matriculas_hoje = self.filtrar_matriculas_nao_baixadas(
-                matriculas_hoje, 
-                verificar_mes_atual=True  # Agora verifica o mês atual inteiro
-            )
+            matriculas_filtradas = []
+            for matricula in matriculas_hoje:
+                if not self.matricula_ja_baixada_no_mes_atual(matricula):
+                    matriculas_filtradas.append(matricula)
+                else:
+                    print(f"🚫 Matrícula {matricula} já baixada este mês - REMOVIDA")
+            
+            matriculas_hoje = matriculas_filtradas
         
         return matriculas_hoje
