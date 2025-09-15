@@ -97,8 +97,8 @@ def generate_report(pdf_path, txt_dir, report_dir):
     - Obrigatório informar se foi feito por média.                                      - INFORMAR EM UPPERCASE : NÃO COLOQUE: NÃO INFORMADO, só coloque as informações se existirem.
     - Obrigatório informar se houve problema na coleta.                                 - INFORMAR EM UPPERCASE : NÃO COLOQUE: NÃO INFORMADO, só coloque as informações se existirem.
     - Obrigatório informar se houve uso atípico de água.                                - INFORMAR EM UPPERCASE : NÃO COLOQUE: NÃO INFORMADO, só coloque as informações se existirem.
+    - Se não houver observações, escrever: "Não informado". 
     - Obrigatório informar se tem possibilidade de vazamento ou problema com a leitura. - INFORMAR EM UPPERCASE : NÃO COLOQUE: NÃO INFORMADO, só coloque as informações se existirem.
-    - Se não houver observações, escrever: "Não informado".
 
     🔹 Formatação
     - Números: respeitar separadores como na fatura (ex.: "XX.XXX", "XXX,XX").  
