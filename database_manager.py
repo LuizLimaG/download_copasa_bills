@@ -62,6 +62,24 @@ class DatabaseManager:
         
         return len(response.data) > 0
 
+    def matricula_ja_baixada_no_mes_atual(self, matricula: str) -> bool:
+        """Verifica se uma matrícula já foi baixada com sucesso no mês atual"""
+        agora = datetime.now()
+        inicio_mes = datetime(agora.year, agora.month, 1).date()
+        fim_mes = datetime(agora.year, agora.month + 1, 1).date() if agora.month < 12 else datetime(agora.year + 1, 1, 1).date()
+        
+        response = (
+            self.supabase.table('tentativas_download')
+            .select('*')
+            .eq('matricula_numero', matricula)
+            .eq('sucesso', True)
+            .gte('data_tentativa', inicio_mes)
+            .lt('data_tentativa', fim_mes)
+            .execute()
+        )
+        
+        return len(response.data) > 0
+
     def matricula_ja_baixada_recentemente(self, matricula: str, dias: int = 1) -> bool:
         """Verifica se uma matrícula já foi baixada com sucesso nos últimos X dias"""
         data_limite = datetime.now() - timedelta(days=dias)
@@ -115,13 +133,13 @@ class DatabaseManager:
 
         return matriculas_pendentes
 
-    def filtrar_matriculas_nao_baixadas(self, matriculas: List[str], verificar_hoje_apenas: bool = True) -> List[str]:
+    def filtrar_matriculas_nao_baixadas(self, matriculas: List[str], verificar_mes_atual: bool = True) -> List[str]:
         """
         Filtra uma lista de matrículas removendo aquelas que já foram baixadas com sucesso
         
         Args:
             matriculas: Lista de matrículas para verificar
-            verificar_hoje_apenas: Se True, verifica apenas downloads de hoje. Se False, verifica dos últimos 5 dias
+            verificar_mes_atual: Se True, verifica downloads no mês atual. Se False, verifica apenas hoje
         
         Returns:
             Lista de matrículas que ainda não foram baixadas
@@ -132,15 +150,17 @@ class DatabaseManager:
         matriculas_nao_baixadas = []
         
         for matricula in matriculas:
-            if verificar_hoje_apenas:
-                ja_baixada = self.matricula_ja_baixada_hoje(matricula)
+            if verificar_mes_atual:
+                ja_baixada = self.matricula_ja_baixada_no_mes_atual(matricula)
+                periodo = "no mês atual"
             else:
-                ja_baixada = self.matricula_ja_baixada_recentemente(matricula, dias=5)
+                ja_baixada = self.matricula_ja_baixada_hoje(matricula)
+                periodo = "hoje"
             
             if not ja_baixada:
                 matriculas_nao_baixadas.append(matricula)
             else:
-                print(f"📋 Matrícula {matricula} já foi baixada com sucesso - PULANDO")
+                print(f"📋 Matrícula {matricula} já foi baixada com sucesso {periodo} - PULANDO")
         
         return matriculas_nao_baixadas
 
@@ -159,7 +179,7 @@ class DatabaseManager:
         Args:
             cpf: CPF para buscar matrículas
             incluir_pendentes: Se deve incluir matrículas pendentes de dias anteriores
-            verificar_duplicatas: Se deve filtrar matrículas já baixadas
+            verificar_duplicatas: Se deve filtrar matrículas já baixadas no mês atual
         """
         hoje = datetime.now().day
         matriculas_hoje = self.get_matriculas_por_dia(hoje, cpf)
@@ -172,7 +192,7 @@ class DatabaseManager:
         if verificar_duplicatas:
             matriculas_hoje = self.filtrar_matriculas_nao_baixadas(
                 matriculas_hoje, 
-                verificar_hoje_apenas=True
+                verificar_mes_atual=True  # Agora verifica o mês atual inteiro
             )
         
         return matriculas_hoje
