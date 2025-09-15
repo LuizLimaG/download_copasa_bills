@@ -412,7 +412,7 @@ def download_bills_by_matricula(driver, download_folder: str, matriculas, cpf: s
     download_manager = OptimizedDownloadManager(download_folder)
     download_monitor = DownloadMonitor()
     
-    matriculas_filtradas = db.filtrar_matriculas_nao_baixadas(matriculas, verificar_hoje_apenas=True)
+    matriculas_filtradas = db.filtrar_matriculas_nao_baixadas(matriculas, verificar_mes_atual=True)
     pending = {_normalize_matricula(m) for m in (matriculas_filtradas or []) if str(m).strip()}
 
     if not pending:
